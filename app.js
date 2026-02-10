@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser");
 const db = require("./db");
 
 const app = express();
+const OFFER_TTL_MS = 30 * 60 * 1000; // 30분
 
 // =========================
 // 관리자 계정 (운영에서는 env 권장)
@@ -44,10 +45,27 @@ function requireAdmin(req, res, next) {
 }
 
 function requireOfferAccess(req, res, next) {
+  // ✅ 관리자는 offers 비번 없이 통과
   if (req.signedCookies?.admin === "1") return next();
-  if (req.signedCookies?.offer === "1") return next();
-  return res.redirect("/offers/login");
+
+  const raw = req.signedCookies?.offer; // 우리가 timestamp 저장할 거
+  if (!raw) return res.redirect("/offers/login");
+
+  const ts = Number(raw);
+  if (!Number.isFinite(ts)) {
+    res.clearCookie("offer", { path: "/" });
+    return res.redirect("/offers/login");
+  }
+
+  // ✅ 30분 지나면 만료
+  if (Date.now() - ts > OFFER_TTL_MS) {
+    res.clearCookie("offer", { path: "/" });
+    return res.redirect("/offers/login");
+  }
+
+  return next();
 }
+
 
 // =========================
 // 홈
