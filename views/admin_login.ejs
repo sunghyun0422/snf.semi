@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>관리자 로그인 - SNF SEMI</title>
+  <link rel="stylesheet" href="/public/styles.css" />
+</head>
+<body>
+  <main class="wrap auth">
+    <h1>관리자 로그인</h1>
+
+    <% if (error) { %>
+      <div class="alert"><%= error %></div>
+    <% } %>
+
+    <form method="post" action="/admin/login" class="form">
+      <label>아이디</label>
+      <input name="username" placeholder="ID" required />
+
+      <label>비밀번호</label>
+      <input name="password" type="password" placeholder="password" required />
+
+      <button class="btn" type="submit">로그인</button>
+    </form>
+
+  </main>
+</body>
+</html>

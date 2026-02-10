@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>OFFERS - <%= siteName %></title>
+  <link rel="stylesheet" href="/public/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner topbar-3col">
+      <div class="top-left">
+        <a class="brand" href="/"><%= siteName %></a>
+      </div>
+      <nav class="top-center">
+        <a class="navlink active" href="/offers">OFFERS</a>
+      </nav>
+      <div class="top-right">
+        <a class="link" href="/admin">ADMIN</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <h1 class="page-title">OFFERS</h1>
+
+    <div class="offer-list">
+      <% if (!posts || posts.length === 0) { %>
+        <p style="opacity:.7;">No offers yet.</p>
+      <% } %>
+
+      <% 
+        function safeParse(json){
+          try { return json ? JSON.parse(json) : null; } catch(e){ return null; }
+        }
+        function toNum(x){
+          const s = String(x ?? "").replaceAll(",", "").trim();
+          const n = Number(s);
+          return Number.isFinite(n) ? n : NaN;
+        }
+        function money(n){
+          return "$" + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        function calcTotal(offer){
+          if (!offer || !offer.items) return null;
+          let sum = 0;
+          let ok = false;
+          offer.items.forEach(it => {
+            const q = toNum(it.qty);
+            const u = toNum(it.unit);
+            if (Number.isFinite(q) && Number.isFinite(u)) {
+              sum += q * u;
+              ok = true;
+            }
+          });
+          return ok ? sum : null;
+        }
+      %>
+
+      <% posts.forEach(p => { 
+        const offer = safeParse(p.offer_json);
+        const total = calcTotal(offer);
+      %>
+        <a class="offer-card" href="/post/<%= p.id %>">
+          <div class="offer-top">
+            <div class="offer-title"><%= p.title %></div>
+            <div class="offer-date"><%= p.created_at %></div>
+          </div>
+
+          <div class="offer-meta">
+            <div class="meta-row">
+              <span class="meta-k">Messrs</span>
+              <span class="meta-v"><%= offer?.messrs || "-" %></span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-k">Date</span>
+              <span class="meta-v"><%= offer?.date || "-" %></span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-k">Destination</span>
+              <span class="meta-v"><%= offer?.destination || "-" %></span>
+            </div>
+          </div>
+
+          <div class="offer-bottom">
+            <span class="badge">USD</span>
+            <span class="offer-total"><%= total !== null ? money(total) : "-" %></span>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+  </main>
+</body>
+</html>

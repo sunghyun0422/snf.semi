@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>OFFERS Login - <%= siteName %></title>
+  <link rel="stylesheet" href="/public/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner topbar-3col">
+      <div class="top-left"><a class="brand" href="/"><%= siteName %></a></div>
+      <nav class="top-center"><a class="navlink active" href="/offers">OFFERS</a></nav>
+      <div class="top-right"><a class="link" href="/admin">ADMIN</a></div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="auth">
+      <h1 style="margin:0 0 10px;">OFFERS Access</h1>
+      <p style="opacity:.75; margin:0 0 14px;">Enter password to view offers.</p>
+
+      <% if (error) { %>
+        <div class="alert"><%= error %></div>
+      <% } %>
+
+      <form method="post" action="/offers/login">
+        <label>Password</label>
+        <input type="password" name="password" required />
+        <button class="btn" type="submit" style="width:100%; margin-top:10px;">Enter</button>
+      </form>
+    </div>
+  </main>
+</body>
+</html>

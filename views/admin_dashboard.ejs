@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin - <%= siteName %></title>
+  <link rel="stylesheet" href="/public/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner topbar-3col">
+      <div class="top-left">
+        <a class="brand" href="/"><%= siteName %></a>
+      </div>
+
+      <nav class="top-center">
+        <a class="navlink" href="/offers">OFFERS</a>
+      </nav>
+
+      <div class="top-right">
+        <a class="link" href="/">HOME</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="admin-head">
+      <h1>관리자 대시보드</h1>
+
+      <div class="admin-actions">
+        <a class="btn secondary" href="/admin/home">Home Edit</a>
+        <a class="btn" href="/admin/new">새 글 작성</a>
+         <a class="btn secondary" href="/admin/offers-password">OFFERS Password</a>
+        <form method="post" action="/admin/logout" style="display:inline;">
+          <button class="btn secondary" type="submit">로그아웃</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card-panel">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>제목</th>
+            <th>상태</th>
+            <th>작성</th>
+            <th>수정</th>
+            <th>관리</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% posts.forEach(p => { %>
+            <tr>
+              <td><%= p.id %></td>
+              <td><%= p.title %></td>
+              <td><%= p.is_published ? "공개" : "숨김" %></td>
+              <td><%= p.created_at %></td>
+              <td><%= p.updated_at %></td>
+              <td class="row-actions">
+                <a class="btn tiny" href="/admin/edit/<%= p.id %>">수정</a>
+
+                <form method="post" action="/admin/toggle/<%= p.id %>" style="display:inline;">
+                  <button class="btn tiny secondary" type="submit">
+                    <%= p.is_published ? "내리기" : "올리기" %>
+                  </button>
+                </form>
+
+                <form method="post" action="/admin/delete/<%= p.id %>" style="display:inline;" onsubmit="return confirm('삭제할까요?');">
+                  <button class="btn tiny danger" type="submit">삭제</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</body>
+</html>

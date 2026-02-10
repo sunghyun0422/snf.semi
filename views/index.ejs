@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title><%= siteName %></title>
+  <link rel="stylesheet" href="/public/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="/"><%= siteName %></a>
+      <a class="link" href="/admin">관리자</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <h1 class="page-title">게시글</h1>
+
+    <div class="grid">
+      <% if (posts.length === 0) { %>
+        <p>아직 게시글이 없습니다. 관리자에서 글을 작성하세요.</p>
+      <% } %>
+
+      <% posts.forEach(p => { %>
+        <a class="card" href="/post/<%= p.id %>">
+          <div class="thumb">
+            <% if (p.thumbnail_path) { %>
+              <img src="<%= p.thumbnail_path %>" alt="" />
+            <% } else { %>
+              <div class="thumb-placeholder">SNF SEMI</div>
+            <% } %>
+          </div>
+          <div class="card-body">
+            <div class="card-title"><%= p.title %></div>
+            <div class="card-meta"><%= p.created_at %></div>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+  </main>
+</body>
+</html>

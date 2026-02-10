@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title><%= siteName %></title>
+  <link rel="stylesheet" href="/public/styles.css" />
+</head>
+<body class="home-body">
+  <header class="topbar topbar-on-hero">
+    <div class="wrap topbar-inner topbar-3col">
+      <div class="top-left">
+        <a class="brand brand-on-hero" href="/"><%= siteName %></a>
+      </div>
+
+      <nav class="top-center">
+        <a class="navlink navlink-on-hero" href="/offers">OFFERS</a>
+      </nav>
+
+      <div class="top-right">
+        <a class="link link-on-hero" href="/admin">ADMIN</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero-full">
+    <img class="hero-full-img" src="/public/images/hero.jpg" alt="SNF SEMI" />
+    <div class="hero-overlay"></div>
+
+    <div class="hero-content wrap">
+      <h1 class="hero-title"><%= siteName %></h1>
+      <p class="hero-sub"><%= home.hero_text %></p>
+      <div class="hero-actions">
+        <a class="btn" href="/offers">View Offers</a>
+      </div>
+    </div>
+  </section>
+
+  <main class="wrap home-after">
+    <section class="home-desc-card">
+      <h2>About</h2>
+      <p><%= home.about_text %></p>
+    </section>
+  </main>
+</body>
+</html>

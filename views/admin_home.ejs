@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Home Edit - <%= siteName %></title>
+  <link rel="stylesheet" href="/public/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner topbar-3col">
+      <div class="top-left">
+        <a class="brand" href="/"><%= siteName %></a>
+      </div>
+
+      <nav class="top-center">
+        <a class="navlink" href="/offers">OFFERS</a>
+      </nav>
+
+      <div class="top-right">
+        <a class="link" href="/admin">ADMIN</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <h1>홈 문구 편집</h1>
+
+    <form class="form" method="post" action="/admin/home">
+      <label>상단(히어로) 문구</label>
+      <textarea name="hero_text" rows="4" required><%= home.hero_text %></textarea>
+
+      <label>하단(About) 문구</label>
+      <textarea name="about_text" rows="6" required><%= home.about_text %></textarea>
+
+      <div class="row">
+        <button class="btn" type="submit">저장</button>
+        <a class="btn secondary" href="/admin">뒤로</a>
+      </div>
+
+      <p class="hint">홈 이미지는 고정: <b>/public/images/hero.jpg</b></p>
+    </form>
+  </main>
+</body>
+</html>
