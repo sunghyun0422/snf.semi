@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ko">
 <head>
+  <link rel="icon" type="image/png" href="/public/favicon.png" />
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title><%= mode === "new" ? "New Offer" : "Edit Offer" %> - <%= siteName %></title>
@@ -9,7 +10,10 @@
 <body>
   <header class="topbar">
     <div class="wrap topbar-inner topbar-3col">
-      <div class="top-left"><a class="brand" href="/"><%= siteName %></a></div>
+      <div class="top-left"><a class="brand" href="/">
+  <img src="/public/logo.png" alt="SNF CORPORATION" class="logo" />
+</a>
+</div>
       <nav class="top-center"><a class="navlink" href="/offers">OFFERS</a></nav>
       <div class="top-right"><a class="link" href="/admin">ADMIN</a></div>
     </div>

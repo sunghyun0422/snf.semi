@@ -221,3 +221,8 @@ input, textarea, select { padding: 10px 12px; border:1px solid #dfe1ea; border-r
   font-weight: 1000;
   letter-spacing: .2px;
 }
+.brand img.logo {
+  height: 34px;      /* 상단바에 딱 좋은 크기 */
+  width: auto;
+  display: block;
+}
