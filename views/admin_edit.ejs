@@ -88,17 +88,20 @@
             <th style="width:70px;">No.</th>
             <th>Description</th>
             <th style="width:140px;">Qty</th>
+            <th style="width:120px;">Unit</th>
             <th style="width:170px;">Unit Price (USD)</th>
           </tr>
         </thead>
+
         <tbody id="itemsBody">
-          <% const items = (post.offer?.items && post.offer.items.length) ? post.offer.items : [{desc:"", qty:"", unit:""}]; %>
+          <% const items = (post.offer?.items && post.offer.items.length) ? post.offer.items : [{desc:"", qty:"", unit:"", price:""}]; %>
           <% items.forEach((it, idx) => { %>
             <tr>
               <td><%= idx+1 %></td>
               <td><input name="item_desc[]" value="<%= it.desc || '' %>" placeholder="Commodity & Description" /></td>
               <td><input type="number" step="any" name="item_qty[]" value="<%= it.qty || '' %>" placeholder="4000" /></td>
-              <td><input type="number" step="any" name="item_unit[]" value="<%= it.unit || '' %>" placeholder="171.00" /></td>
+              <td><input name="item_unit[]" value="<%= it.unit || '' %>" placeholder="EA" /></td>
+              <td><input type="number" step="any" name="item_price[]" value="<%= it.price || '' %>" placeholder="171.00" /></td>
             </tr>
           <% }) %>
         </tbody>
@@ -133,7 +136,8 @@
         <td>${n}</td>
         <td><input name="item_desc[]" placeholder="Commodity & Description" /></td>
         <td><input type="number" step="any" name="item_qty[]" placeholder="4000" /></td>
-        <td><input type="number" step="any" name="item_unit[]" placeholder="171.00" /></td>
+        <td><input name="item_unit[]" placeholder="EA" /></td>
+        <td><input type="number" step="any" name="item_price[]" placeholder="171.00" /></td>
       `;
       body.appendChild(tr);
     }
