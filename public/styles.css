@@ -241,7 +241,7 @@ input, textarea, select { padding: 10px 12px; border:1px solid #dfe1ea; border-r
 
 /* ✅ 모든 페이지 상단바 로고 크기 강제 고정 */
 .topbar .brand img {
-  height: 34px;
+  height: 130px;
   width: auto;
   display: block;
 }
