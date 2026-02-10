@@ -38,6 +38,7 @@ async function migrate() {
     );
   `);
 
+  // ✅ home_settings: 새 스키마 + 구 스키마(hero_text/about_text) 둘 다 지원
   await exec(`
     CREATE TABLE IF NOT EXISTS home_settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -45,9 +46,17 @@ async function migrate() {
       hero_subtitle TEXT NOT NULL DEFAULT 'Welcome',
       about_title TEXT NOT NULL DEFAULT 'About',
       about_text TEXT NOT NULL DEFAULT 'About SNF SEMI',
+      hero_text TEXT NOT NULL DEFAULT 'Welcome',
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
+
+  // ✅ 기존 DB 업그레이드: 컬럼 없으면 추가(있으면 에러 -> 무시)
+  try { await exec(`ALTER TABLE home_settings ADD COLUMN hero_text TEXT NOT NULL DEFAULT 'Welcome';`); } catch (_) {}
+  try { await exec(`ALTER TABLE home_settings ADD COLUMN hero_title TEXT NOT NULL DEFAULT 'SNF SEMI';`); } catch (_) {}
+  try { await exec(`ALTER TABLE home_settings ADD COLUMN hero_subtitle TEXT NOT NULL DEFAULT 'Welcome';`); } catch (_) {}
+  try { await exec(`ALTER TABLE home_settings ADD COLUMN about_title TEXT NOT NULL DEFAULT 'About';`); } catch (_) {}
+  try { await exec(`ALTER TABLE home_settings ADD COLUMN about_text TEXT NOT NULL DEFAULT 'About SNF SEMI';`); } catch (_) {}
 
   await exec(`
     CREATE TABLE IF NOT EXISTS offer_access_settings (
@@ -57,12 +66,36 @@ async function migrate() {
     );
   `);
 
+  // ✅ id=1 row 보장 + 구/신 스키마 값 동기화
   const home = await get(`SELECT * FROM home_settings WHERE id=1`);
   if (!home) {
     await run(
-      `INSERT INTO home_settings (id, hero_title, hero_subtitle, about_title, about_text) VALUES (1, ?, ?, ?, ?)`,
-      ["SNF SEMI", "Welcome", "About", "About SNF SEMI"]
+      `INSERT INTO home_settings (id, hero_title, hero_subtitle, about_title, about_text, hero_text)
+       VALUES (1, ?, ?, ?, ?, ?)`,
+      ["SNF SEMI", "Welcome", "About", "About SNF SEMI", "Welcome"]
     );
+  } else {
+    // hero_text가 비어있으면 hero_subtitle을 넣어줌(기존 화면 호환)
+    if (!home.hero_text) {
+      await run(`UPDATE home_settings SET hero_text=?, updated_at=datetime('now') WHERE id=1`, [
+        home.hero_subtitle || "Welcome",
+      ]);
+    }
+    // hero_title/hero_subtitle이 비어있으면 hero_text 기준으로 채움
+    if (!home.hero_title) {
+      await run(`UPDATE home_settings SET hero_title=?, updated_at=datetime('now') WHERE id=1`, ["SNF SEMI"]);
+    }
+    if (!home.hero_subtitle) {
+      await run(`UPDATE home_settings SET hero_subtitle=?, updated_at=datetime('now') WHERE id=1`, [
+        home.hero_text || "Welcome",
+      ]);
+    }
+    if (!home.about_title) {
+      await run(`UPDATE home_settings SET about_title=?, updated_at=datetime('now') WHERE id=1`, ["About"]);
+    }
+    if (!home.about_text) {
+      await run(`UPDATE home_settings SET about_text=?, updated_at=datetime('now') WHERE id=1`, ["About SNF SEMI"]);
+    }
   }
 
   const offer = await get(`SELECT * FROM offer_access_settings WHERE id=1`);
@@ -72,5 +105,6 @@ async function migrate() {
     await run(`INSERT INTO offer_access_settings (id, password_hash) VALUES (1, ?)`, [hash]);
   }
 }
+
 
 module.exports = { exec, get, all, run, migrate };
