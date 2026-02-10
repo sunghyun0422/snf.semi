@@ -89,7 +89,14 @@ input, textarea, select { padding: 10px 12px; border:1px solid #dfe1ea; border-r
 .hero-overlay { position:absolute; inset:0; background: rgba(0,0,0,.35); }
 
 .hero-content { position: relative; z-index: 2; height: 100%; display:flex; flex-direction: column; justify-content: center; padding-top: 72px; }
-.hero-title { color:white; font-size: 48px; margin: 0 0 10px; }
+.hero-title { 
+  color: white; 
+  font-size: 56px;
+  font-weight: 900;
+  margin: 0 0 12px;
+  letter-spacing: 1px;
+}
+
 .hero-sub { color:white; opacity:.92; max-width: 720px; line-height: 1.7; margin: 0 0 16px; white-space: pre-line; }
 
 .hero-actions { margin-top: 6px; }
@@ -221,8 +228,20 @@ input, textarea, select { padding: 10px 12px; border:1px solid #dfe1ea; border-r
   font-weight: 1000;
   letter-spacing: .2px;
 }
-.brand img.logo {
-  height: 34px;      /* 상단바에 딱 좋은 크기 */
+.brand-logo img{
+  height: 34px;
+  width: auto;
+  display: block;
+}
+
+.topbar-on-hero .brand-logo img{
+  height: 34px;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.4));
+}
+
+/* ✅ 모든 페이지 상단바 로고 크기 강제 고정 */
+.topbar .brand img {
+  height: 34px;
   width: auto;
   display: block;
 }
