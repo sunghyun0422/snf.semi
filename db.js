@@ -1,75 +1,76 @@
-const Database = require("better-sqlite3");
-const path = require("path");
+const { createClient } = require("@libsql/client");
 
-const dbPath = path.join(__dirname, "data", "app.db");
-const db = new Database(dbPath);
+const url = process.env.TURSO_DATABASE_URL;
+const authToken = process.env.TURSO_AUTH_TOKEN;
 
-// posts
-db.exec(`
-CREATE TABLE IF NOT EXISTS posts (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  title TEXT NOT NULL,
-  content TEXT NOT NULL,
-  thumbnail_path TEXT,
-  is_published INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-);
-`);
+if (!url) throw new Error("Missing TURSO_DATABASE_URL");
+if (!authToken) throw new Error("Missing TURSO_AUTH_TOKEN");
 
-// ✅ 기존 DB 업그레이드: 오퍼시트 저장 컬럼 추가
-try { db.exec(`ALTER TABLE posts ADD COLUMN offer_json TEXT;`); } catch (_) {}
-try { db.exec(`ALTER TABLE posts ADD COLUMN offer_note TEXT;`); } catch (_) {}
+const client = createClient({ url, authToken });
 
-// post_images
-db.exec(`
-CREATE TABLE IF NOT EXISTS post_images (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  post_id INTEGER NOT NULL,
-  image_path TEXT NOT NULL,
-  sort_order INTEGER DEFAULT 0,
-  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
-);
-`);
-
-// home_settings (2개 문구)
-db.exec(`
-CREATE TABLE IF NOT EXISTS home_settings (
-  id INTEGER PRIMARY KEY CHECK (id = 1),
-  hero_text TEXT NOT NULL DEFAULT 'Welcome',
-  about_text TEXT NOT NULL DEFAULT 'About SNF SEMI',
-  updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-);
-`);
-
-// ✅ 기존 DB 사용자 업그레이드(컬럼 추가)
-try { db.exec(`ALTER TABLE home_settings ADD COLUMN hero_text TEXT NOT NULL DEFAULT 'Welcome';`); } catch (_) {}
-try { db.exec(`ALTER TABLE home_settings ADD COLUMN about_text TEXT NOT NULL DEFAULT 'About SNF SEMI';`); } catch (_) {}
-
-// ✅ id=1 row 강제 생성
-const home = db.prepare("SELECT * FROM home_settings WHERE id=1").get();
-if (!home) {
-  db.prepare("INSERT INTO home_settings (id, hero_text, about_text) VALUES (1, ?, ?)").run(
-    "Welcome",
-    "About SNF SEMI"
-  );
+async function exec(sql) {
+  return client.execute(sql);
+}
+async function get(sql, args = []) {
+  const r = await client.execute({ sql, args });
+  return r.rows[0] || null;
+}
+async function all(sql, args = []) {
+  const r = await client.execute({ sql, args });
+  return r.rows || [];
+}
+async function run(sql, args = []) {
+  return client.execute({ sql, args });
 }
 
-// offer_access_settings (offers 페이지 비밀번호)
-db.exec(`
-CREATE TABLE IF NOT EXISTS offer_access_settings (
-  id INTEGER PRIMARY KEY CHECK (id = 1),
-  password_hash TEXT NOT NULL,
-  updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-);
-`);
+async function migrate() {
+  await exec(`
+    CREATE TABLE IF NOT EXISTS posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL DEFAULT '',
+      thumbnail_path TEXT,
+      is_published INTEGER NOT NULL DEFAULT 1,
+      offer_json TEXT,
+      offer_note TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
 
-// id=1 row 강제 생성 (기본 비번: offer1234)
-const offerAccess = db.prepare("SELECT * FROM offer_access_settings WHERE id=1").get();
-if (!offerAccess) {
-  const bcrypt = require("bcrypt");
-  const hash = bcrypt.hashSync("offer1234", 10);
-  db.prepare("INSERT INTO offer_access_settings (id, password_hash) VALUES (1, ?)").run(hash);
+  await exec(`
+    CREATE TABLE IF NOT EXISTS home_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      hero_title TEXT NOT NULL DEFAULT 'SNF SEMI',
+      hero_subtitle TEXT NOT NULL DEFAULT 'Welcome',
+      about_title TEXT NOT NULL DEFAULT 'About',
+      about_text TEXT NOT NULL DEFAULT 'About SNF SEMI',
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  await exec(`
+    CREATE TABLE IF NOT EXISTS offer_access_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      password_hash TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  const home = await get(`SELECT * FROM home_settings WHERE id=1`);
+  if (!home) {
+    await run(
+      `INSERT INTO home_settings (id, hero_title, hero_subtitle, about_title, about_text) VALUES (1, ?, ?, ?, ?)`,
+      ["SNF SEMI", "Welcome", "About", "About SNF SEMI"]
+    );
+  }
+
+  const offer = await get(`SELECT * FROM offer_access_settings WHERE id=1`);
+  if (!offer) {
+    const bcrypt = require("bcrypt");
+    const hash = bcrypt.hashSync("offer1234", 10);
+    await run(`INSERT INTO offer_access_settings (id, password_hash) VALUES (1, ?)`, [hash]);
+  }
 }
 
-module.exports = db;
+module.exports = { exec, get, all, run, migrate };
