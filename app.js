@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const bcrypt = require("bcrypt");
@@ -95,22 +96,22 @@ app.post("/offers/login", async (req, res) => {
     return res.render("offers_login", { siteName: "SNF SEMI", error: "Wrong password." });
   }
 
-  // 세션 쿠키(브라우저 종료하면 보통 만료)
-  res.cookie("offer", "1", {
+res.cookie("offer", String(Date.now()), {
   signed: true,
   httpOnly: true,
-  sameSite: "strict",
-  // maxAge를 주지 않으면 세션 쿠키(브라우저 닫으면 만료)
-  // (일부 브라우저가 세션복원할 수 있어 strict로 더 빡세게)
+  sameSite: "lax",
+  path: "/",
 });
+
 
   return res.redirect("/offers");
 });
 
 app.post("/offers/logout", (req, res) => {
-  res.clearCookie("offer", { signed: true });
+  res.clearCookie("offer", { path: "/" });
   res.redirect("/");
 });
+
 
 
 // =========================
