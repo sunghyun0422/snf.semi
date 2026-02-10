@@ -258,19 +258,28 @@ function buildOfferFromBody(body) {
   const items = [];
   const arr = (v) => (Array.isArray(v) ? v : v != null ? [v] : []);
 
-  const descArr = arr(body["item_desc[]"]);
-  const qtyArr = arr(body["item_qty[]"]);
-  const unitArr = arr(body["item_unit[]"]); // ✅ 단가(USD)
+  // ✅ [] 붙어서 오든, 안 붙어서 오든 모두 받기
+  const descArr = arr(body["item_desc[]"] ?? body.item_desc);
+  const qtyArr  = arr(body["item_qty[]"]  ?? body.item_qty);
 
-  const len = Math.max(descArr.length, qtyArr.length, unitArr.length);
+  // ✅ 예전 방식: item_unit[] = 단가(Unit Price)
+  // ✅ 혹시 새 방식(item_price[]) 섞였어도 단가로 흡수
+  const unitArr  = arr(body["item_unit[]"]  ?? body.item_unit);
+  const priceArr = arr(body["item_price[]"] ?? body.item_price);
+
+  const len = Math.max(descArr.length, qtyArr.length, unitArr.length, priceArr.length);
 
   for (let i = 0; i < len; i++) {
     const desc = (descArr[i] ?? "").toString().trim();
-    const qty = (qtyArr[i] ?? "").toString().trim();
-    const unit = (unitArr[i] ?? "").toString().trim();
+    const qty  = (qtyArr[i]  ?? "").toString().trim();
+
+    // unit(단가)는 unitArr 우선, 없으면 priceArr fallback
+    const unit =
+      ((unitArr[i] ?? "").toString().trim()) ||
+      ((priceArr[i] ?? "").toString().trim());
 
     if (!desc && !qty && !unit) continue;
-    items.push({ desc, qty, unit });
+    items.push({ desc, qty, unit }); // ✅ post.ejs가 qty X unit으로 계산하는 구조
   }
 
   return {
@@ -288,6 +297,7 @@ function buildOfferFromBody(body) {
     items,
   };
 }
+
 
 // =========================
 // 관리자: 새 오퍼
