@@ -5,9 +5,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title><%= siteName %></title>
+
+  <!-- 기존 스타일 -->
   <link rel="stylesheet" href="/public/styles.css" />
+
+  <!-- ✅ Quill 출력용 CSS (글자크기 적용 핵심) -->
+  <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.core.css" rel="stylesheet" />
 </head>
+
 <body class="home-body">
+
   <header class="topbar topbar-on-hero">
     <div class="wrap topbar-inner topbar-3col">
       <div class="top-left">
@@ -33,8 +40,10 @@
     <div class="hero-content wrap">
       <h1 class="hero-title">SNF-Semi</h1>
 
-      <!-- ✅ 히어로 문구 HTML 허용 -->
-      <p class="hero-sub"><%- home.hero_text %></p>
+      <!-- ✅ hero 텍스트도 Quill 스타일 적용 -->
+      <div class="hero-sub ql-editor">
+        <%- home.hero_text %>
+      </div>
 
       <div class="hero-actions">
         <a class="btn" href="/offers">View Offers</a>
@@ -46,11 +55,12 @@
     <section class="home-desc-card">
       <h2>About</h2>
 
-      <!-- ✅ HTML 그대로 출력 -->
-      <div class="about-content">
+      <!-- ✅ About 텍스트도 Quill 스타일 적용 -->
+      <div class="about-content ql-editor">
         <%- home.about_text %>
       </div>
     </section>
   </main>
+
 </body>
 </html>
