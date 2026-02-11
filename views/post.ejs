@@ -25,6 +25,16 @@
   </header>
 
   <main class="wrap">
+      <% if (submitted === "1") { %>
+    <div class="toast success" id="toastMsg">
+      ✅ 제출이 완료되었습니다. 빠른 시일 내에 연락드리겠습니다.
+    </div>
+  <% } else if (submitted === "0") { %>
+    <div class="toast fail" id="toastMsg">
+      ❌ 전송에 실패했습니다. 잠시 후 다시 시도해주세요.
+    </div>
+  <% } %>
+
     <div class="post-head">
       <h1 class="post-title"><%= post.title %></h1>
       <div class="post-meta"><%= post.created_at %></div>
@@ -163,4 +173,9 @@
     <% } %>
   </main>
 </body>
+<script>
+  const t = document.getElementById("toastMsg");
+  if (t) setTimeout(() => (t.style.display = "none"), 3000);
+</script>
+
 </html>

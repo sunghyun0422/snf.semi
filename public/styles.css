@@ -397,3 +397,22 @@ input, textarea, select { padding: 10px 12px; border:1px solid #dfe1ea; border-r
 html {
   overflow-y: scroll; /* 스크롤바 항상 확보해서 흔들림 방지 */
 }
+.toast{
+  margin: 14px 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-weight: 800;
+  border: 1px solid;
+}
+
+.toast.success{
+  background: #e8f5e9;
+  border-color: #a5d6a7;
+  color: #2e7d32;
+}
+
+.toast.fail{
+  background: #ffebee;
+  border-color: #ef9a9a;
+  color: #c62828;
+}

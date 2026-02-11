@@ -37,11 +37,6 @@ const mailEnabled =
   !!process.env.SMTP_USER &&
   !!process.env.SMTP_PASS &&
   !!process.env.OWNER_EMAIL;
-console.log("SMTP_HOST:", process.env.SMTP_HOST);
-console.log("SMTP_PORT:", process.env.SMTP_PORT);
-console.log("SMTP_SECURE:", process.env.SMTP_SECURE);
-console.log("SMTP_USER:", process.env.SMTP_USER);
-console.log("OWNER_EMAIL:", process.env.OWNER_EMAIL);
 
 
 const transporter = mailEnabled
@@ -174,8 +169,13 @@ app.get("/post/:id", requireOfferAccess, async (req, res) => {
     offer = null;
   }
 
-  res.render("post", { siteName: "SNF SEMI", post, offer });
+  // ✅ 추가
+  const submitted = String(req.query.submitted || ""); // "1" or "0" or ""
+
+  // ✅ 여기 수정
+  res.render("post", { siteName: "SNF SEMI", post, offer, submitted });
 });
+
 
 // =========================
 // ✅ Buyer 제출 → 메일 발송
