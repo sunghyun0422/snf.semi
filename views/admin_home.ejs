@@ -6,15 +6,21 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Home Edit - <%= siteName %></title>
   <link rel="stylesheet" href="/public/styles.css" />
+
+  <!-- ✅ Quill (API 키 필요 없음) -->
+  <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet" />
+  <style>
+    .ql-toolbar.ql-snow { border-radius: 12px 12px 0 0; }
+    .ql-container.ql-snow { border-radius: 0 0 12px 12px; min-height: 260px; }
+  </style>
 </head>
 <body>
   <header class="topbar">
     <div class="wrap topbar-inner topbar-3col">
       <div class="top-left">
         <a class="brand" href="/">
-  <img src="/public/logo.png" alt="SNF CORPORATION" />
-</a>
-
+          <img src="/public/logo.png" alt="SNF CORPORATION" />
+        </a>
       </div>
 
       <nav class="top-center">
@@ -30,12 +36,17 @@
   <main class="wrap">
     <h1>홈 문구 편집</h1>
 
-    <form class="form" method="post" action="/admin/home">
+    <form class="form" method="post" action="/admin/home" id="homeForm">
       <label>상단(히어로) 문구</label>
       <textarea name="hero_text" rows="4" required><%= home.hero_text %></textarea>
 
       <label>하단(About) 문구</label>
-      <textarea name="about_text" rows="6" required><%= home.about_text %></textarea>
+
+      <!-- ✅ 에디터 영역 -->
+      <div id="aboutEditor"></div>
+
+      <!-- ✅ 서버로 보낼 실제 값(HTML) -->
+      <input type="hidden" name="about_text" id="about_text" />
 
       <div class="row">
         <button class="btn" type="submit">저장</button>
@@ -45,5 +56,33 @@
       <p class="hint">홈 이미지는 고정: <b>/public/images/hero.jpg</b></p>
     </form>
   </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+
+  <script>
+    // ✅ 툴바: 굵기/기울기/색/크기/정렬 + 리스트
+    const quill = new Quill('#aboutEditor', {
+      theme: 'snow',
+      modules: {
+        toolbar: [
+          ['bold','italic','underline'],
+          [{ 'size': ['small', false, 'large', 'huge'] }],
+          [{ 'color': [] }],
+          [{ 'align': [] }],
+          [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+          ['clean']
+        ]
+      }
+    });
+
+    // ✅ 기존 저장된 HTML을 에디터에 주입
+    const initialHtml = `<%- (home.about_text || "").replace(/`/g, "\\`") %>`;
+    quill.root.innerHTML = initialHtml;
+
+    // ✅ 저장 버튼 누를 때 에디터 HTML을 hidden input에 넣어서 전송
+    document.getElementById('homeForm').addEventListener('submit', () => {
+      document.getElementById('about_text').value = quill.root.innerHTML;
+    });
+  </script>
 </body>
 </html>

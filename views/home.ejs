@@ -11,7 +11,6 @@
   <header class="topbar topbar-on-hero">
     <div class="wrap topbar-inner topbar-3col">
       <div class="top-left">
-        <!-- ✅ 상단만 로고 이미지 -->
         <a class="brand brand-on-hero brand-logo" href="/">
           <img src="/public/logo.png" alt="SNF CORPORATION" />
         </a>
@@ -32,10 +31,11 @@
     <div class="hero-overlay"></div>
 
     <div class="hero-content wrap">
-      <!-- ✅ 히어로 중앙은 텍스트로 고정 -->
       <h1 class="hero-title">SNF-Semi</h1>
 
-      <p class="hero-sub"><%= home.hero_text %></p>
+      <!-- ✅ 히어로 문구 HTML 허용 -->
+      <p class="hero-sub"><%- home.hero_text %></p>
+
       <div class="hero-actions">
         <a class="btn" href="/offers">View Offers</a>
       </div>
@@ -45,7 +45,11 @@
   <main class="wrap home-after">
     <section class="home-desc-card">
       <h2>About</h2>
-      <p><%= home.about_text %></p>
+
+      <!-- ✅ HTML 그대로 출력 -->
+      <div class="about-content">
+        <%- home.about_text %>
+      </div>
     </section>
   </main>
 </body>
