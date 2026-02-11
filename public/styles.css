@@ -2,19 +2,44 @@
 body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#f6f7fb; color:#111; }
 a { color: inherit; text-decoration: none; }
 .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
-.topbar { position: sticky; top: 0; background: white; border-bottom: 1px solid #e9e9ef; }
+
+/* Topbar */
+.topbar { position: sticky; top: 0; background: white; border-bottom: 1px solid #e9e9ef; z-index: 20; }
 .topbar-inner { display: flex; align-items: center; justify-content: space-between; }
+.topbar-3col { display:grid; grid-template-columns: 1fr auto 1fr; align-items:center; }
+.top-left { justify-self: start; }
+.top-center { justify-self: center; }
+.top-right { justify-self: end; display:flex; gap:10px; align-items:center; }
+
 .brand { font-weight: 800; letter-spacing: .5px; }
 .link { opacity: .8; }
+
+.navlink { font-weight: 800; letter-spacing: .8px; opacity:.9; }
+.navlink:hover { opacity: 1; }
+
 .page-title { margin: 12px 0 16px; }
 
+/* ✅ 모든 페이지 상단바 로고 크기 강제 고정 */
+.topbar .brand img {
+  height: 130px;
+  width: auto;
+  display: block;
+}
+
+/* Grid / Cards */
 .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
 @media (max-width: 980px) { .grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
 
-.card {
-  background: white; border: 1px solid #ededf3; border-radius: 14px; overflow: hidden;
-  box-shadow: 0 6px 16px rgba(0,0,0,.04); display: flex; flex-direction: column; min-height: 220px;
+.card{
+  background: white;
+  border: 1px solid #ededf3;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(0,0,0,.04);
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
 }
 .thumb { height: 140px; background: #f0f2f8; display:flex; align-items:center; justify-content:center; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display:block; }
@@ -23,63 +48,90 @@ a { color: inherit; text-decoration: none; }
 .card-title { font-weight: 800; line-height: 1.2; margin-bottom: 8px; }
 .card-meta { font-size: 12px; opacity: .7; }
 
+/* Post */
 .post { background:white; border:1px solid #ededf3; border-radius:14px; padding:16px; box-shadow: 0 6px 16px rgba(0,0,0,.04); }
 .post-title { margin: 0 0 10px; }
 .post-hero { width:100%; max-height: 420px; object-fit: cover; border-radius: 12px; margin: 10px 0; }
 .post-meta { font-size: 12px; opacity: .7; margin-bottom: 12px; }
 .post-content { line-height: 1.7; }
 
+/* Auth / Form */
 .auth { max-width: 520px; }
-.form { display:flex; flex-direction:column; gap:10px; background:white; border:1px solid #ededf3; border-radius:14px; padding:16px; box-shadow: 0 6px 16px rgba(0,0,0,.04); }
+.form{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  background:white;
+  border:1px solid #ededf3;
+  border-radius:14px;
+  padding:16px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.04);
+}
 input, textarea, select { padding: 10px 12px; border:1px solid #dfe1ea; border-radius: 10px; font-size: 14px; }
-.btn { display:inline-flex; align-items:center; justify-content:center; padding: 10px 12px; border-radius: 10px; border: 1px solid #111; background: #111; color: white; cursor:pointer; }
+.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #111;
+  background: #111;
+  color: white;
+  cursor:pointer;
+}
 .btn.secondary { background: white; color:#111; }
 .btn.danger { background: #d92d20; border-color:#d92d20; color:white; }
 .btn.tiny { padding: 6px 10px; border-radius: 9px; font-size: 12px; }
 .row { display:flex; gap:10px; }
+
 .alert { background:#fff2f2; border:1px solid #ffd0d0; padding:10px 12px; border-radius: 10px; color:#8a1f1f; }
 .hint { opacity:.75; }
+
+/* Admin */
 .admin-head { display:flex; align-items:center; justify-content:space-between; gap: 12px; }
 .admin-actions { display:flex; gap:10px; align-items:center; }
-.table { width:100%; border-collapse: collapse; background:white; border:1px solid #ededf3; border-radius:14px; overflow:hidden; box-shadow: 0 6px 16px rgba(0,0,0,.04); }
-.table th, .table td { padding: 10px 12px; border-bottom:1px solid #f0f0f6; text-align:left; font-size: 13px; }
 .row-actions { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
 .thumb-preview { width: 180px; height: 120px; object-fit: cover; border-radius: 12px; border:1px solid #ededf3; }
 
-.topbar-3col { display:grid; grid-template-columns: 1fr auto 1fr; align-items:center; }
-.top-left { justify-self: start; }
-.top-center { justify-self: center; }
-.top-right { justify-self: end; display:flex; gap:10px; align-items:center; }
+/* Table */
+.table{
+  width:100%;
+  border-collapse: collapse;
+  background:white;
+  border:1px solid #ededf3;
+  border-radius:14px;
+  overflow:hidden;
+  box-shadow: 0 6px 16px rgba(0,0,0,.04);
+}
+.table th, .table td { padding: 10px 12px; border-bottom:1px solid #f0f0f6; text-align:left; font-size: 13px; }
 
-.navlink { font-weight: 800; letter-spacing: .8px; opacity:.9; }
-.navlink:hover { opacity: 1; }
-
+/* Home Hero (기존 유지) */
 .home-hero { display:grid; grid-template-columns: 1.4fr 1fr; gap: 18px; margin-top: 18px; }
 @media (max-width: 900px) { .home-hero { grid-template-columns: 1fr; } }
 
-.home-hero-img {
-  background: white; border:1px solid #ededf3; border-radius: 14px;
-  overflow: hidden; box-shadow: 0 6px 16px rgba(0,0,0,.04);
+.home-hero-img{
+  background: white;
+  border:1px solid #ededf3;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(0,0,0,.04);
   min-height: 320px;
 }
 .home-hero-img img { width:100%; height:100%; object-fit: cover; display:block; }
 
-.home-hero-text {
-  background: white; border:1px solid #ededf3; border-radius: 14px;
-  padding: 16px; box-shadow: 0 6px 16px rgba(0,0,0,.04);
-  display:flex; flex-direction: column; justify-content: center;
+.home-hero-text{
+  background: white;
+  border:1px solid #ededf3;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.04);
+  display:flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .home-desc { opacity:.8; line-height: 1.7; margin-top: 10px; white-space: pre-line; }
-/* topbar 3col */
-.topbar-3col { display:grid; grid-template-columns: 1fr auto 1fr; align-items:center; }
-.top-left { justify-self: start; }
-.top-center { justify-self: center; }
-.top-right { justify-self: end; display:flex; gap:10px; align-items:center; }
 
-.navlink { font-weight: 800; letter-spacing: .8px; opacity:.9; }
-.navlink:hover { opacity: 1; }
-
-/* full hero */
+/* Full hero */
 .home-body { margin:0; }
 .topbar-on-hero { position: absolute; top:0; left:0; right:0; z-index: 10; background: transparent; border-bottom: 0; }
 .brand-on-hero, .navlink-on-hero, .link-on-hero { color: white !important; }
@@ -89,23 +141,23 @@ input, textarea, select { padding: 10px 12px; border:1px solid #dfe1ea; border-r
 .hero-overlay { position:absolute; inset:0; background: rgba(0,0,0,.35); }
 
 .hero-content { position: relative; z-index: 2; height: 100%; display:flex; flex-direction: column; justify-content: center; padding-top: 72px; }
-.hero-title { 
-  color: white; 
+.hero-title{
+  color: white;
   font-size: 56px;
   font-weight: 900;
   margin: 0 0 12px;
   letter-spacing: 1px;
 }
-
 .hero-sub { color:white; opacity:.92; max-width: 720px; line-height: 1.7; margin: 0 0 16px; white-space: pre-line; }
-
 .hero-actions { margin-top: 6px; }
 
 .home-after { margin-top: 18px; }
 .home-desc-card { background:white; border:1px solid #ededf3; border-radius: 14px; padding: 16px; box-shadow: 0 6px 16px rgba(0,0,0,.04); }
 .home-desc-card p { opacity:.85; line-height:1.7; white-space: pre-line; }
+
+/* Invoice */
 .invoice { background: transparent; }
-.invoice-title {
+.invoice-title{
   font-size: 22px;
   font-weight: 900;
   margin: 18px 0 10px;
@@ -121,21 +173,18 @@ input, textarea, select { padding: 10px 12px; border:1px solid #dfe1ea; border-r
   padding: 12px;
   box-shadow: 0 6px 16px rgba(0,0,0,.04);
 }
-.row2{ display:grid; grid-template-columns: 140px 1fr; gap: 10px; padding: 6px 0; border-bottom:1px solid #f1f1f6; }
+.row2{
+  display:grid;
+  grid-template-columns: 140px 1fr;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom:1px solid #f1f1f6;
+}
 .row2:last-child{ border-bottom:0; }
 .row2 .k{ font-weight:800; opacity:.8; }
-.row2 .v{ white-space: pre-line; }
+.row2 .v{ white-space: pre-line; width: 100%; }
 
-.post-head{
-  background:white;
-  border:1px solid #ededf3;
-  border-radius: 12px;
-  padding: 14px;
-  box-shadow: 0 6px 16px rgba(0,0,0,.04);
-  margin-top: 16px;
-}
-.post-title{ margin:0 0 6px; }
-.post-meta{ opacity:.7; font-size: 12px; }
+/* Offer list */
 .offer-list{
   display:grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -228,20 +277,123 @@ input, textarea, select { padding: 10px 12px; border:1px solid #dfe1ea; border-r
   font-weight: 1000;
   letter-spacing: .2px;
 }
+
+/* Brand logo helper (기존 유지) */
 .brand-logo img{
   height: 34px;
   width: auto;
   display: block;
 }
-
 .topbar-on-hero .brand-logo img{
   height: 34px;
   filter: drop-shadow(0 2px 6px rgba(0,0,0,.4));
 }
 
-/* ✅ 모든 페이지 상단바 로고 크기 강제 고정 */
-.topbar .brand img {
+/* Post head card */
+.post-head{
+  background:white;
+  border:1px solid #ededf3;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.04);
+  margin-top: 16px;
+}
+
+/* =========================
+   Buyer submit (상단 입력 + 하단 버튼만)
+   ========================= */
+
+/* 상단 Buyer input */
+.buyer-input{
+  width: 100%;
+  max-width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  outline: none;
+}
+.row2 .v .buyer-input{ box-sizing: border-box; }
+
+/* 맨 아래 버튼만 영역 */
+.submit-only{
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+}
+
+/* 빨간 제출 버튼 */
+.submit-btn{
+  background: #e53935;
+  color: #fff;
+  border: 0;
+  padding: 12px 28px;
+  border-radius: 999px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.submit-btn:hover{
+  filter: brightness(0.95);
+}
+
+/* Buyer Name / Email 행 높이 & 수직정렬 정확히 맞추기 */
+.row2 {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  align-items: center;     /* ✅ 세로 정중앙 */
+  padding: 10px 0;         /* ✅ 위아래 균형 */
+}
+
+.row2 .v {
+  display: flex;
+  align-items: center;     /* ✅ input 자체도 중앙 */
+}
+
+/* 입력칸 정확한 중앙 느낌 */
+.buyer-input {
+  height: 36px;            /* ✅ 높이 고정 (중요) */
+  line-height: 36px;       /* ✅ 내부 텍스트도 중앙 */
+  padding: 0 12px;         /* ✅ 위아래 padding 제거 */
+  width: 100%;
+  max-width: 320px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: #fafafa;
+  box-sizing: border-box;
+}
+
+/* 모바일 대응 */
+@media (max-width: 640px) {
+  .buyer-input {
+    max-width: 100%;
+  }
+}
+
+.buyer-input {
+  background: #fafafa;
+}
+
+/* 홈(히어로)에서도 상단바 로고를 크게 유지 */
+.topbar-on-hero .brand-logo img {
   height: 130px;
   width: auto;
-  display: block;
+}
+
+/* 모든 페이지에서 topbar 내부 컨테이너 정렬을 동일하게 강제 */
+.topbar .wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/* 홈(히어로)에서도 wrap 기준으로 동일하게 */
+.topbar-on-hero .wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+html {
+  overflow-y: scroll; /* 스크롤바 항상 확보해서 흔들림 방지 */
 }

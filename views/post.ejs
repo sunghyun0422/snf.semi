@@ -12,9 +12,8 @@
     <div class="wrap topbar-inner topbar-3col">
       <div class="top-left">
         <a class="brand" href="/">
-  <img src="/public/logo.png" alt="SNF CORPORATION" />
-</a>
-
+          <img src="/public/logo.png" alt="SNF CORPORATION" />
+        </a>
       </div>
       <nav class="top-center">
         <a class="navlink" href="/offers">OFFERS</a>
@@ -37,108 +36,130 @@
       </div>
     <% } else { %>
 
-      <div class="invoice">
-        <div class="invoice-title">Proforma Invoice</div>
+      <!-- ✅ 한 폼으로 묶기: 상단 입력 + 맨 아래 제출 버튼 -->
+      <form method="POST" action="/post/<%= post.id %>/buyer-submit" class="buyer-submit-form">
 
-        <div class="invoice-grid">
-          <div class="invoice-box">
-            <div class="row2"><div class="k">Messrs</div><div class="v"><%= offer.messrs || "" %></div></div>
-            <div class="row2"><div class="k">Buyer Address</div><div class="v"><%= offer.buyer_address || "" %></div></div>
+        <div class="invoice">
+          <div class="invoice-title">Proforma Invoice</div>
+
+          <div class="invoice-grid">
+            <div class="invoice-box">
+              <!-- ✅ 여기(두번째 사진 영역)에 입력칸 -->
+              <div class="row2">
+                <div class="k">Buyer Name</div>
+                <div class="v">
+                  <input class="buyer-input" name="buyerName" type="text" required maxlength="80" />
+                </div>
+              </div>
+
+              <div class="row2">
+                <div class="k">Buyer Email</div>
+                <div class="v">
+                  <input class="buyer-input" name="buyerEmail" type="email" required maxlength="120" />
+                </div>
+              </div>
+            </div>
+
+            <div class="invoice-box">
+              <div class="row2"><div class="k">Date</div><div class="v"><%= offer.date || "" %></div></div>
+              <div class="row2"><div class="k">Invoice No.</div><div class="v"><%= offer.invoice_no || "" %></div></div>
+              <div class="row2"><div class="k">Destination</div><div class="v"><%= offer.destination || "" %></div></div>
+            </div>
           </div>
 
-          <div class="invoice-box">
-            <div class="row2"><div class="k">Date</div><div class="v"><%= offer.date || "" %></div></div>
-            <div class="row2"><div class="k">Invoice No.</div><div class="v"><%= offer.invoice_no || "" %></div></div>
-            <div class="row2"><div class="k">Destination</div><div class="v"><%= offer.destination || "" %></div></div>
-          </div>
-        </div>
-
-        <div class="invoice-box" style="margin-top:12px;">
-          <div class="row2"><div class="k">Payment</div><div class="v"><%= offer.payment || "" %></div></div>
-          <div class="row2"><div class="k">Price Terms</div><div class="v"><%= offer.price_terms || "" %></div></div>
-          <div class="row2"><div class="k">Shipment</div><div class="v"><%= offer.shipment || "" %></div></div>
-          <div class="row2"><div class="k">Origin</div><div class="v"><%= offer.origin || "" %></div></div>
-          <div class="row2"><div class="k">Packing</div><div class="v"><%= offer.packing || "" %></div></div>
-        </div>
-
-        <div class="invoice-box" style="margin-top:12px;">
-          <div class="k" style="margin-bottom:6px; font-weight:900;">Bank Information</div>
-          <div class="v" style="white-space:pre-line;"><%= offer.bank_info || "" %></div>
-        </div>
-
-        <%
-          function toNum(x){
-            const s = String(x ?? "").replaceAll(",", "").trim();
-            const n = Number(s);
-            return Number.isFinite(n) ? n : NaN;
-          }
-          function money(n){
-            // USD 표시: $1,234.00 형식
-            return "$" + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-          }
-        %>
-
-        <div class="invoice-box" style="margin-top:12px;">
-          <table class="table">
-            <thead>
-              <tr>
-                <th style="width:70px;">No.</th>
-                <th>Commodity & Description</th>
-                <th style="width:120px;">Qty</th>
-                <th style="width:140px;">Unit Price (USD)</th>
-                <th style="width:170px;">Amount (USD)</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              <%
-                const items = offer.items || [];
-                let totalQty = 0;
-                let totalAmt = 0;
-                let hasQty = false;
-                let hasAmt = false;
-              %>
-
-              <% if (items.length === 0) { %>
-                <tr><td colspan="5" style="opacity:.7;">No items</td></tr>
-              <% } %>
-
-              <% items.forEach((it, idx) => { 
-                const q = toNum(it.qty);
-                const u = toNum(it.unit);
-                const amt = (Number.isFinite(q) && Number.isFinite(u)) ? (q * u) : NaN;
-
-                if (Number.isFinite(q)) { totalQty += q; hasQty = true; }
-                if (Number.isFinite(amt)) { totalAmt += amt; hasAmt = true; }
-              %>
-                <tr>
-                  <td><%= idx+1 %></td>
-                  <td><%= it.desc || "" %></td>
-                  <td><%= it.qty || "" %></td>
-                  <td><%= Number.isFinite(u) ? money(u) : (it.unit || "-") %></td>
-                  <td><%= Number.isFinite(amt) ? money(amt) : "-" %></td>
-                </tr>
-              <% }) %>
-            </tbody>
-
-            <tfoot>
-              <tr>
-                <th colspan="2" style="text-align:right;">TOTAL</th>
-                <th><%= hasQty ? totalQty.toLocaleString() : "-" %></th>
-                <th style="text-align:right;">USD</th>
-                <th><%= hasAmt ? money(totalAmt) : "-" %></th>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-
-        <% if (post.offer_note && post.offer_note.trim()) { %>
           <div class="invoice-box" style="margin-top:12px;">
-            <div class="k" style="margin-bottom:6px; font-weight:900;">Remarks</div>
-            <div class="v" style="white-space:pre-line;"><%= post.offer_note %></div>
+            <div class="row2"><div class="k">Payment</div><div class="v"><%= offer.payment || "" %></div></div>
+            <div class="row2"><div class="k">Price Terms</div><div class="v"><%= offer.price_terms || "" %></div></div>
+            <div class="row2"><div class="k">Shipment</div><div class="v"><%= offer.shipment || "" %></div></div>
+            <div class="row2"><div class="k">Origin</div><div class="v"><%= offer.origin || "" %></div></div>
+            <div class="row2"><div class="k">Packing</div><div class="v"><%= offer.packing || "" %></div></div>
           </div>
-        <% } %>
-      </div>
+
+          <div class="invoice-box" style="margin-top:12px;">
+            <div class="k" style="margin-bottom:6px; font-weight:900;">Part Information</div>
+            <div class="v" style="white-space:pre-line;"><%= offer.bank_info || "" %></div>
+          </div>
+
+          <%
+            function toNum(x){
+              const s = String(x ?? "").replaceAll(",", "").trim();
+              const n = Number(s);
+              return Number.isFinite(n) ? n : NaN;
+            }
+            function money(n){
+              return "$" + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+          %>
+
+          <div class="invoice-box" style="margin-top:12px;">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th style="width:70px;">No.</th>
+                  <th>Commodity & Description</th>
+                  <th style="width:120px;">Qty</th>
+                  <th style="width:140px;">Unit Price (USD)</th>
+                  <th style="width:170px;">Amount (USD)</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <%
+                  const items = offer.items || [];
+                  let totalQty = 0;
+                  let totalAmt = 0;
+                  let hasQty = false;
+                  let hasAmt = false;
+                %>
+
+                <% if (items.length === 0) { %>
+                  <tr><td colspan="5" style="opacity:.7;">No items</td></tr>
+                <% } %>
+
+                <% items.forEach((it, idx) => { 
+                  const q = toNum(it.qty);
+                  const u = toNum(it.unit);
+                  const amt = (Number.isFinite(q) && Number.isFinite(u)) ? (q * u) : NaN;
+
+                  if (Number.isFinite(q)) { totalQty += q; hasQty = true; }
+                  if (Number.isFinite(amt)) { totalAmt += amt; hasAmt = true; }
+                %>
+                  <tr>
+                    <td><%= idx+1 %></td>
+                    <td><%= it.desc || "" %></td>
+                    <td><%= it.qty || "" %></td>
+                    <td><%= Number.isFinite(u) ? money(u) : (it.unit || "-") %></td>
+                    <td><%= Number.isFinite(amt) ? money(amt) : "-" %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+
+              <tfoot>
+                <tr>
+                  <th colspan="2" style="text-align:right;">TOTAL</th>
+                  <th><%= hasQty ? totalQty.toLocaleString() : "-" %></th>
+                  <th style="text-align:right;">USD</th>
+                  <th><%= hasAmt ? money(totalAmt) : "-" %></th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <% if (post.offer_note && post.offer_note.trim()) { %>
+            <div class="invoice-box" style="margin-top:12px;">
+              <div class="k" style="margin-bottom:6px; font-weight:900;">Bank Information</div>
+              <div class="v" style="white-space:pre-line;"><%= post.offer_note %></div>
+            </div>
+          <% } %>
+
+          <!-- ✅ 맨 아래: 빨간 제출 버튼만 -->
+          <div class="submit-only">
+            <button type="submit" class="submit-btn">제출하기</button>
+          </div>
+
+        </div>
+      </form>
+
     <% } %>
   </main>
 </body>

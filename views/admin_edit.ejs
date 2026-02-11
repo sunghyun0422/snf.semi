@@ -11,10 +11,10 @@
   <header class="topbar">
     <div class="wrap topbar-inner topbar-3col">
       <div class="top-left">
-  <a class="brand brand-logo" href="/">
-    <img src="/public/logo.png" alt="SNF CORPORATION" />
-  </a>
-</div>
+        <a class="brand brand-logo" href="/">
+          <img src="/public/logo.png" alt="SNF CORPORATION" />
+        </a>
+      </div>
 
       <nav class="top-center"><a class="navlink" href="/offers">OFFERS</a></nav>
       <div class="top-right"><a class="link" href="/admin">ADMIN</a></div>
@@ -28,35 +28,22 @@
       <label>제목(리스트에 보일 이름)</label>
       <input name="title" value="<%= post.title || '' %>" required />
 
+      <!-- ✅ Buyer Name(=messrs) / Buyer Email(=buyer_address) 입력칸 제거 -->
       <div class="grid2">
-        <div>
-          <label>Messrs</label>
-          <input name="messrs" value="<%= (post.offer?.messrs)||'' %>" placeholder="APEX NEXUS LIMITED" />
-        </div>
         <div>
           <label>Date</label>
           <input name="date" value="<%= (post.offer?.date)||'' %>" placeholder="2025-12-25" />
         </div>
-      </div>
-
-      <div class="grid2">
         <div>
           <label>Invoice No.</label>
           <input name="invoice_no" value="<%= (post.offer?.invoice_no)||'' %>" placeholder="SNFMD51225-00A" />
         </div>
-        <div>
-          <label>Destination</label>
-          <input name="destination" value="<%= (post.offer?.destination)||'' %>" placeholder="HONG KONG" />
-        </div>
       </div>
-
-      <label>Buyer Address</label>
-      <textarea name="buyer_address" rows="3"><%= (post.offer?.buyer_address)||'' %></textarea>
 
       <div class="grid2">
         <div>
-          <label>Payment</label>
-          <input name="payment" value="<%= (post.offer?.payment)||'' %>" />
+          <label>Destination</label>
+          <input name="destination" value="<%= (post.offer?.destination)||'' %>" placeholder="HONG KONG" />
         </div>
         <div>
           <label>Price Terms</label>
@@ -66,19 +53,28 @@
 
       <div class="grid2">
         <div>
+          <label>Payment</label>
+          <input name="payment" value="<%= (post.offer?.payment)||'' %>" />
+        </div>
+        <div>
           <label>Shipment</label>
           <input name="shipment" value="<%= (post.offer?.shipment)||'' %>" />
         </div>
+      </div>
+
+      <div class="grid2">
         <div>
           <label>Origin</label>
           <input name="origin" value="<%= (post.offer?.origin)||'' %>" placeholder="Republic of Korea" />
         </div>
+        <div>
+          <label>Packing</label>
+          <input name="packing" value="<%= (post.offer?.packing)||'' %>" />
+        </div>
       </div>
 
-      <label>Packing</label>
-      <input name="packing" value="<%= (post.offer?.packing)||'' %>" />
-
-      <label>Bank Information</label>
+      <!-- ✅ Bank Information -> Part Information (필드명 bank_info 유지) -->
+      <label>Part Information</label>
       <textarea name="bank_info" rows="4"><%= (post.offer?.bank_info)||'' %></textarea>
 
       <hr style="margin:16px 0;">
@@ -115,7 +111,8 @@
         <button class="btn secondary" type="button" onclick="addRow()">+ Add Item</button>
       </div>
 
-      <label style="margin-top:16px;">하단 설명/Remarks</label>
+      <!-- ✅ 하단 설명/Remarks -> Bank Information (필드명 offer_note 유지) -->
+      <label style="margin-top:16px;">Bank Information</label>
       <textarea name="offer_note" rows="5"><%= post.offer_note || '' %></textarea>
 
       <label>공개 여부</label>

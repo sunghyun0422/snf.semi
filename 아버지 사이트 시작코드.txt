@@ -1,0 +1,15 @@
+아버지 사이트 시작코드
+node server.js
+
+databases url
+libsql://snfsemi-sunghyun0422.aws-ap-northeast-1.turso.io
+
+토큰
+eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzA2OTY3MDksImlkIjoiNWRlMGU4M2MtZGMzYS00NTFlLTg1NDMtOGY4ZTI0NGRhMmM1IiwicmlkIjoiMjgxMTdiMjQtYjRiYi00NjQ4LWEzYWMtMTBkNTI5YzI0YWJkIn0.UltQ58frNsbuAUqfisRy9jbyQ6AFufUvSu8wocw0VWuXu8ZcosVA2IMkU4EijwWxutR1gXcBQoJWlxhTxX6mAw
+
+업로드 코드
+git add .
+git commit -m "chore: remove legacy builds config"
+git push
+
+https://snf-semi.vercel.app/

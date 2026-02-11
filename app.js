@@ -3,6 +3,7 @@ const express = require("express");
 const path = require("path");
 const bcrypt = require("bcrypt");
 const cookieParser = require("cookie-parser");
+const nodemailer = require("nodemailer");
 const db = require("./db");
 
 const app = express();
@@ -28,6 +29,34 @@ app.use("/public", express.static(path.join(__dirname, "public")));
 app.use(cookieParser(process.env.COOKIE_SECRET || "snf-semi-secret-key"));
 
 // =========================
+// 메일 발송 설정 (Gmail SMTP)
+// =========================
+const mailEnabled =
+  !!process.env.SMTP_HOST &&
+  !!process.env.SMTP_PORT &&
+  !!process.env.SMTP_USER &&
+  !!process.env.SMTP_PASS &&
+  !!process.env.OWNER_EMAIL;
+console.log("SMTP_HOST:", process.env.SMTP_HOST);
+console.log("SMTP_PORT:", process.env.SMTP_PORT);
+console.log("SMTP_SECURE:", process.env.SMTP_SECURE);
+console.log("SMTP_USER:", process.env.SMTP_USER);
+console.log("OWNER_EMAIL:", process.env.OWNER_EMAIL);
+
+
+const transporter = mailEnabled
+  ? nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT),
+      secure: String(process.env.SMTP_SECURE || "true") === "true",
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    })
+  : null;
+
+// =========================
 // DB 마이그레이션(첫 요청 1회만)
 // =========================
 let migrated = false;
@@ -49,7 +78,7 @@ function requireOfferAccess(req, res, next) {
   // ✅ 관리자는 offers 비번 없이 통과
   if (req.signedCookies?.admin === "1") return next();
 
-  const raw = req.signedCookies?.offer; // 우리가 timestamp 저장할 거
+  const raw = req.signedCookies?.offer; // timestamp
   if (!raw) return res.redirect("/offers/login");
 
   const ts = Number(raw);
@@ -66,7 +95,6 @@ function requireOfferAccess(req, res, next) {
 
   return next();
 }
-
 
 // =========================
 // 홈
@@ -89,20 +117,21 @@ app.post("/offers/login", async (req, res) => {
   await ensureDb();
 
   const { password } = req.body;
-  const row = await db.get(`SELECT password_hash FROM offer_access_settings WHERE id=1`);
+  const row = await db.get(
+    `SELECT password_hash FROM offer_access_settings WHERE id=1`
+  );
   const ok = row && bcrypt.compareSync(password || "", row.password_hash);
 
   if (!ok) {
     return res.render("offers_login", { siteName: "SNF SEMI", error: "Wrong password." });
   }
 
-res.cookie("offer", String(Date.now()), {
-  signed: true,
-  httpOnly: true,
-  sameSite: "lax",
-  path: "/",
-});
-
+  res.cookie("offer", String(Date.now()), {
+    signed: true,
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+  });
 
   return res.redirect("/offers");
 });
@@ -111,8 +140,6 @@ app.post("/offers/logout", (req, res) => {
   res.clearCookie("offer", { path: "/" });
   res.redirect("/");
 });
-
-
 
 // =========================
 // OFFERS 리스트
@@ -148,6 +175,62 @@ app.get("/post/:id", requireOfferAccess, async (req, res) => {
   }
 
   res.render("post", { siteName: "SNF SEMI", post, offer });
+});
+
+// =========================
+// ✅ Buyer 제출 → 메일 발송
+// =========================
+app.post("/post/:id/buyer-submit", requireOfferAccess, async (req, res) => {
+  await ensureDb();
+
+  try {
+    const id = Number(req.params.id);
+    const buyerName = (req.body.buyerName || "").toString().trim();
+    const buyerEmail = (req.body.buyerEmail || "").toString().trim();
+
+    if (!buyerName || !buyerEmail) {
+      return res.status(400).send("Buyer Name/Email is required.");
+    }
+
+    // 오퍼 존재 확인(제목 같이 보내려고)
+    const post = await db.get(`SELECT id, title FROM posts WHERE id=? AND is_published=1`, [id]);
+    if (!post) return res.status(404).send("Offer not found.");
+
+    if (!mailEnabled) {
+      return res
+        .status(500)
+        .send("Mail settings are missing. Please set SMTP_* and OWNER_EMAIL in .env");
+    }
+
+    const subject = `[SNF SEMI] New Inquiry - ${post.title} (post:${id})`;
+    const link = `${req.protocol}://${req.get("host")}/post/${id}`;
+
+    const text = [
+      "New buyer inquiry received.",
+      "",
+      `Buyer Name : ${buyerName}`,
+      `Buyer Email: ${buyerEmail}`,
+      "",
+      `Offer Title: ${post.title}`,
+      `Link      : ${link}`,
+      "",
+      `Submitted : ${new Date().toISOString()}`,
+    ].join("\n");
+
+    await transporter.sendMail({
+      from: `"SNF SEMI" <${process.env.SMTP_USER}>`,
+      to: process.env.OWNER_EMAIL, // ✅ keennice@empas.com
+      replyTo: buyerEmail,         // ✅ 답장 누르면 구매자에게 바로
+      subject,
+      text,
+    });
+
+    // 성공 후 다시 상세로
+    return res.redirect(`/post/${id}?submitted=1`);
+  } catch (err) {
+    console.error("MAIL ERROR:", err);
+    return res.status(500).send("Mail send failed.");
+  }
 });
 
 // =========================
@@ -198,7 +281,6 @@ app.get("/admin", requireAdmin, async (req, res) => {
 
 // =========================
 // 관리자: 홈 문구 편집 (양쪽 스키마 자동 호환)
-// admin_home.ejs는 hero_text / about_text 사용
 // =========================
 app.get("/admin/home", requireAdmin, async (req, res) => {
   await ensureDb();
@@ -223,7 +305,7 @@ app.post("/admin/home", requireAdmin, async (req, res) => {
     return res.redirect("/admin/home");
   } catch (_) {}
 
-  // 2) 없으면 hero_title/hero_subtitle/about_title/about_text 스키마로 저장
+  // 2) 없으면 hero_subtitle/about_text 스키마로 저장
   await db.run(
     `UPDATE home_settings
      SET hero_subtitle=?, about_text=?, updated_at=datetime('now')
@@ -278,19 +360,15 @@ app.post("/admin/offers-password", requireAdmin, async (req, res) => {
 });
 
 // =========================
-// 오퍼 폼 파서 (✅ 예전 방식: unit = 단가 USD)
-// form name: item_desc[] / item_qty[] / item_unit[]
+// 오퍼 폼 파서 (unit = 단가 USD)
 // =========================
 function buildOfferFromBody(body) {
   const items = [];
   const arr = (v) => (Array.isArray(v) ? v : v != null ? [v] : []);
 
-  // ✅ [] 붙어서 오든, 안 붙어서 오든 모두 받기
   const descArr = arr(body["item_desc[]"] ?? body.item_desc);
   const qtyArr  = arr(body["item_qty[]"]  ?? body.item_qty);
 
-  // ✅ 예전 방식: item_unit[] = 단가(Unit Price)
-  // ✅ 혹시 새 방식(item_price[]) 섞였어도 단가로 흡수
   const unitArr  = arr(body["item_unit[]"]  ?? body.item_unit);
   const priceArr = arr(body["item_price[]"] ?? body.item_price);
 
@@ -300,13 +378,12 @@ function buildOfferFromBody(body) {
     const desc = (descArr[i] ?? "").toString().trim();
     const qty  = (qtyArr[i]  ?? "").toString().trim();
 
-    // unit(단가)는 unitArr 우선, 없으면 priceArr fallback
     const unit =
       ((unitArr[i] ?? "").toString().trim()) ||
       ((priceArr[i] ?? "").toString().trim());
 
     if (!desc && !qty && !unit) continue;
-    items.push({ desc, qty, unit }); // ✅ post.ejs가 qty X unit으로 계산하는 구조
+    items.push({ desc, qty, unit });
   }
 
   return {
@@ -324,7 +401,6 @@ function buildOfferFromBody(body) {
     items,
   };
 }
-
 
 // =========================
 // 관리자: 새 오퍼
@@ -433,3 +509,4 @@ app.post("/admin/delete/:id", requireAdmin, async (req, res) => {
 });
 
 module.exports = app;
+
