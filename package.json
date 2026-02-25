@@ -12,6 +12,7 @@
   "type": "commonjs",
   "dependencies": {
     "@libsql/client": "^0.17.0",
+    "@supabase/supabase-js": "^2.95.3",
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.6.2",
     "cookie-parser": "^1.4.7",

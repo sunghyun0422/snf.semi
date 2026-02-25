@@ -4,17 +4,11 @@ const path = require("path");
 const bcrypt = require("bcrypt");
 const cookieParser = require("cookie-parser");
 const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 const db = require("./db");
 
 const app = express();
 const OFFER_TTL_MS = 30 * 60 * 1000; // 30분
-
-// =========================
-// 관리자 계정 (운영에서는 env 권장)
-// =========================
-const ADMIN_ID = process.env.ADMIN_ID || "keennice";
-const ADMIN_PASSWORD_HASH =
-  process.env.ADMIN_PASSWORD_HASH || bcrypt.hashSync("essenef007", 10);
 
 // =========================
 // 기본 설정
@@ -38,18 +32,26 @@ const mailEnabled =
   !!process.env.SMTP_PASS &&
   !!process.env.OWNER_EMAIL;
 
+// ✅ 관리자 인증코드(OTP)용 메일 체크 (OWNER_EMAIL 없어도 동작)
+const adminMailEnabled =
+  !!process.env.SMTP_HOST &&
+  !!process.env.SMTP_PORT &&
+  !!process.env.SMTP_USER &&
+  !!process.env.SMTP_PASS &&
+  !!process.env.ADMIN_EMAIL;
 
-const transporter = mailEnabled
-  ? nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: String(process.env.SMTP_SECURE || "true") === "true",
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    })
-  : null;
+const transporter =
+  mailEnabled || adminMailEnabled
+    ? nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT),
+        secure: String(process.env.SMTP_SECURE || "true") === "true",
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      })
+    : null;
 
 // =========================
 // DB 마이그레이션(첫 요청 1회만)
@@ -92,6 +94,16 @@ function requireOfferAccess(req, res, next) {
 }
 
 // =========================
+// OTP 유틸
+// =========================
+function sha256(s) {
+  return crypto.createHash("sha256").update(String(s)).digest("hex");
+}
+function makeCode6() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+// =========================
 // 홈
 // =========================
 app.get("/", async (req, res) => {
@@ -118,7 +130,10 @@ app.post("/offers/login", async (req, res) => {
   const ok = row && bcrypt.compareSync(password || "", row.password_hash);
 
   if (!ok) {
-    return res.render("offers_login", { siteName: "SNF SEMI", error: "Wrong password." });
+    return res.render("offers_login", {
+      siteName: "SNF SEMI",
+      error: "Wrong password.",
+    });
   }
 
   res.cookie("offer", String(Date.now()), {
@@ -159,7 +174,10 @@ app.get("/post/:id", requireOfferAccess, async (req, res) => {
   await ensureDb();
 
   const id = Number(req.params.id);
-  const post = await db.get(`SELECT * FROM posts WHERE id=? AND is_published=1`, [id]);
+  const post = await db.get(
+    `SELECT * FROM posts WHERE id=? AND is_published=1`,
+    [id]
+  );
   if (!post) return res.status(404).send("Offer not found.");
 
   let offer = null;
@@ -169,13 +187,9 @@ app.get("/post/:id", requireOfferAccess, async (req, res) => {
     offer = null;
   }
 
-  // ✅ 추가
-  const submitted = String(req.query.submitted || ""); // "1" or "0" or ""
-
-  // ✅ 여기 수정
+  const submitted = String(req.query.submitted || "");
   res.render("post", { siteName: "SNF SEMI", post, offer, submitted });
 });
-
 
 // =========================
 // ✅ Buyer 제출 → 메일 발송
@@ -193,13 +207,18 @@ app.post("/post/:id/buyer-submit", requireOfferAccess, async (req, res) => {
     }
 
     // 오퍼 존재 확인(제목 같이 보내려고)
-    const post = await db.get(`SELECT id, title FROM posts WHERE id=? AND is_published=1`, [id]);
+    const post = await db.get(
+      `SELECT id, title FROM posts WHERE id=? AND is_published=1`,
+      [id]
+    );
     if (!post) return res.status(404).send("Offer not found.");
 
-    if (!mailEnabled) {
+    if (!mailEnabled || !transporter) {
       return res
         .status(500)
-        .send("Mail settings are missing. Please set SMTP_* and OWNER_EMAIL in .env");
+        .send(
+          "Mail settings are missing. Please set SMTP_* and OWNER_EMAIL in .env"
+        );
     }
 
     const subject = `[SNF SEMI] New Inquiry - ${post.title} (post:${id})`;
@@ -219,13 +238,12 @@ app.post("/post/:id/buyer-submit", requireOfferAccess, async (req, res) => {
 
     await transporter.sendMail({
       from: `"SNF SEMI" <${process.env.SMTP_USER}>`,
-      to: process.env.OWNER_EMAIL, // ✅ keennice@empas.com
-      replyTo: buyerEmail,         // ✅ 답장 누르면 구매자에게 바로
+      to: process.env.OWNER_EMAIL, // ✅ buyer 문의는 여기로
+      replyTo: buyerEmail, // ✅ 답장 누르면 구매자에게 바로
       subject,
       text,
     });
 
-    // 성공 후 다시 상세로
     return res.redirect(`/post/${id}?submitted=1`);
   } catch (err) {
     console.error("MAIL ERROR:", err);
@@ -241,27 +259,132 @@ app.get("/admin/login", async (req, res) => {
   res.render("admin_login", { error: null });
 });
 
+// ✅ DB 기반 관리자 로그인 (admin_users id=1)
 app.post("/admin/login", async (req, res) => {
   await ensureDb();
 
   const { username, password } = req.body;
 
-  if (username !== ADMIN_ID) {
-    return res.render("admin_login", { error: "아이디 또는 비밀번호가 틀렸습니다." });
+  const admin = await db.get(`SELECT * FROM admin_users WHERE id=1`);
+  if (!admin) {
+    return res.render("admin_login", { error: "관리자 계정이 DB에 없습니다." });
   }
 
-  const ok = bcrypt.compareSync(password || "", ADMIN_PASSWORD_HASH);
+  if ((username || "") !== admin.username) {
+    return res.render("admin_login", {
+      error: "아이디 또는 비밀번호가 틀렸습니다.",
+    });
+  }
+
+  const ok = bcrypt.compareSync(password || "", admin.password_hash);
   if (!ok) {
-    return res.render("admin_login", { error: "아이디 또는 비밀번호가 틀렸습니다." });
+    return res.render("admin_login", {
+      error: "아이디 또는 비밀번호가 틀렸습니다.",
+    });
   }
 
   res.cookie("admin", "1", { signed: true, httpOnly: true, sameSite: "lax" });
-  res.redirect("/admin");
+  return res.redirect("/admin");
 });
 
 app.post("/admin/logout", (req, res) => {
   res.clearCookie("admin");
   res.redirect("/");
+});
+
+// =========================
+// ✅ 관리자 계정 변경 (메일 OTP)
+// =========================
+app.get("/admin/account", requireAdmin, async (req, res) => {
+  await ensureDb();
+
+  const admin = await db.get(`SELECT username FROM admin_users WHERE id=1`);
+  return res.render("admin_account", {
+    siteName: "SNF SEMI",
+    admin,
+    sent: req.query.sent || "",
+    ok: req.query.ok || "",
+    err: req.query.err || "",
+  });
+});
+
+app.post("/admin/account/send-code", requireAdmin, async (req, res) => {
+  await ensureDb();
+
+  if (!adminMailEnabled || !transporter) {
+    return res.redirect("/admin/account?err=mail_not_ready");
+  }
+
+  const code = makeCode6();
+  const otpHash = sha256(code);
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+  await db.run(`INSERT INTO admin_otp (otp_hash, expires_at) VALUES (?, ?)`, [
+    otpHash,
+    expiresAt,
+  ]);
+
+  await transporter.sendMail({
+    from: `"SNF SEMI" <${process.env.SMTP_USER}>`,
+    to: process.env.ADMIN_EMAIL, // ✅ 인증코드 받는 메일
+    subject: "[SNF] 관리자 변경 인증코드",
+    text: `인증코드: ${code}\n유효시간: 10분`,
+  });
+
+  return res.redirect("/admin/account?sent=1");
+});
+
+app.post("/admin/account/update", requireAdmin, async (req, res) => {
+  await ensureDb();
+
+  const newUsername = (req.body.newUsername || "").toString().trim();
+  const newPassword = (req.body.newPassword || "").toString().trim();
+  const otpCode = (req.body.otpCode || "").toString().trim();
+
+  if (!otpCode) return res.redirect("/admin/account?err=need_code");
+
+  const otp = await db.get(`SELECT * FROM admin_otp ORDER BY id DESC LIMIT 1`);
+  if (!otp) return res.redirect("/admin/account?err=no_otp");
+  if (otp.used_at) return res.redirect("/admin/account?err=otp_used");
+  if (new Date() > new Date(otp.expires_at))
+    return res.redirect("/admin/account?err=otp_expired");
+
+  const ok = sha256(otpCode) === otp.otp_hash;
+  if (!ok) return res.redirect("/admin/account?err=otp_wrong");
+
+  await db.run(`UPDATE admin_otp SET used_at=datetime('now') WHERE id=?`, [
+    otp.id,
+  ]);
+
+  if (!newUsername && !newPassword)
+    return res.redirect("/admin/account?err=nothing");
+
+  const updates = [];
+  const params = [];
+
+  if (newUsername) {
+    updates.push("username=?");
+    params.push(newUsername);
+  }
+
+  if (newPassword) {
+    if (newPassword.length < 6)
+      return res.redirect("/admin/account?err=pw_short");
+    const hash = bcrypt.hashSync(newPassword, 10);
+    updates.push("password_hash=?");
+    params.push(hash);
+  }
+
+  updates.push("updated_at=datetime('now')");
+  params.push(1);
+
+  try {
+    await db.run(`UPDATE admin_users SET ${updates.join(", ")} WHERE id=?`, params);
+  } catch (e) {
+    return res.redirect("/admin/account?err=duplicate");
+  }
+
+  return res.redirect("/admin/account?ok=1");
 });
 
 // =========================
@@ -321,7 +444,11 @@ app.post("/admin/home", requireAdmin, async (req, res) => {
 // =========================
 app.get("/admin/offers-password", requireAdmin, async (req, res) => {
   await ensureDb();
-  res.render("admin_offers_password", { siteName: "SNF SEMI", error: null, success: null });
+  res.render("admin_offers_password", {
+    siteName: "SNF SEMI",
+    error: null,
+    success: null,
+  });
 });
 
 app.post("/admin/offers-password", requireAdmin, async (req, res) => {
@@ -367,16 +494,21 @@ function buildOfferFromBody(body) {
   const arr = (v) => (Array.isArray(v) ? v : v != null ? [v] : []);
 
   const descArr = arr(body["item_desc[]"] ?? body.item_desc);
-  const qtyArr  = arr(body["item_qty[]"]  ?? body.item_qty);
+  const qtyArr = arr(body["item_qty[]"] ?? body.item_qty);
 
-  const unitArr  = arr(body["item_unit[]"]  ?? body.item_unit);
+  const unitArr = arr(body["item_unit[]"] ?? body.item_unit);
   const priceArr = arr(body["item_price[]"] ?? body.item_price);
 
-  const len = Math.max(descArr.length, qtyArr.length, unitArr.length, priceArr.length);
+  const len = Math.max(
+    descArr.length,
+    qtyArr.length,
+    unitArr.length,
+    priceArr.length
+  );
 
   for (let i = 0; i < len; i++) {
     const desc = (descArr[i] ?? "").toString().trim();
-    const qty  = (qtyArr[i]  ?? "").toString().trim();
+    const qty = (qtyArr[i] ?? "").toString().trim();
 
     const unit =
       ((unitArr[i] ?? "").toString().trim()) ||
@@ -496,7 +628,10 @@ app.post("/admin/toggle/:id", requireAdmin, async (req, res) => {
   if (!row) return res.status(404).send("Offer not found");
 
   const next = Number(row.is_published) === 1 ? 0 : 1;
-  await db.run(`UPDATE posts SET is_published=?, updated_at=datetime('now') WHERE id=?`, [next, id]);
+  await db.run(
+    `UPDATE posts SET is_published=?, updated_at=datetime('now') WHERE id=?`,
+    [next, id]
+  );
   res.redirect("/admin");
 });
 
@@ -509,4 +644,3 @@ app.post("/admin/delete/:id", requireAdmin, async (req, res) => {
 });
 
 module.exports = app;
-

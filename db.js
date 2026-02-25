@@ -104,6 +104,40 @@ async function migrate() {
     const hash = bcrypt.hashSync("offer1234", 10);
     await run(`INSERT INTO offer_access_settings (id, password_hash) VALUES (1, ?)`, [hash]);
   }
+
+    // =========================
+  // ✅ admin_users / admin_otp 추가
+  // =========================
+  await exec(`
+    CREATE TABLE IF NOT EXISTS admin_users (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      username TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  await exec(`
+    CREATE TABLE IF NOT EXISTS admin_otp (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      otp_hash TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      used_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  // ✅ admin_users id=1 row 보장 (처음 1회만 생성)
+  const admin = await get(`SELECT * FROM admin_users WHERE id=1`);
+  if (!admin) {
+    const bcrypt = require("bcrypt");
+    const hash = bcrypt.hashSync("essenef007", 10); // ✅ 지금 네 기존 비번을 초기값으로
+    await run(
+      `INSERT INTO admin_users (id, username, password_hash) VALUES (1, ?, ?)`,
+      ["keennice", hash] // ✅ 지금 네 기존 아이디를 초기값으로
+    );
+  }
 }
 
 
