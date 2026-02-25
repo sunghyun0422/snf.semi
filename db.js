@@ -75,13 +75,11 @@ async function migrate() {
       ["SNF SEMI", "Welcome", "About", "About SNF SEMI", "Welcome"]
     );
   } else {
-    // hero_text가 비어있으면 hero_subtitle을 넣어줌(기존 화면 호환)
     if (!home.hero_text) {
       await run(`UPDATE home_settings SET hero_text=?, updated_at=datetime('now') WHERE id=1`, [
         home.hero_subtitle || "Welcome",
       ]);
     }
-    // hero_title/hero_subtitle이 비어있으면 hero_text 기준으로 채움
     if (!home.hero_title) {
       await run(`UPDATE home_settings SET hero_title=?, updated_at=datetime('now') WHERE id=1`, ["SNF SEMI"]);
     }
@@ -105,8 +103,8 @@ async function migrate() {
     await run(`INSERT INTO offer_access_settings (id, password_hash) VALUES (1, ?)`, [hash]);
   }
 
-    // =========================
-  // ✅ admin_users / admin_otp 추가
+  // =========================
+  // ✅ admin_users / admin_otp
   // =========================
   await exec(`
     CREATE TABLE IF NOT EXISTS admin_users (
@@ -128,17 +126,33 @@ async function migrate() {
     );
   `);
 
-  // ✅ admin_users id=1 row 보장 (처음 1회만 생성)
   const admin = await get(`SELECT * FROM admin_users WHERE id=1`);
   if (!admin) {
     const bcrypt = require("bcrypt");
-    const hash = bcrypt.hashSync("essenef007", 10); // ✅ 지금 네 기존 비번을 초기값으로
+    const hash = bcrypt.hashSync("essenef007", 10);
     await run(
       `INSERT INTO admin_users (id, username, password_hash) VALUES (1, ?, ?)`,
-      ["keennice", hash] // ✅ 지금 네 기존 아이디를 초기값으로
+      ["keennice", hash]
     );
   }
-}
 
+  // =========================
+  // ✅ attachments
+  // =========================
+  await exec(`
+    CREATE TABLE IF NOT EXISTS attachments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      post_id INTEGER NOT NULL,
+      filename TEXT NOT NULL,
+      mime TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      data BLOB NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (post_id) REFERENCES posts(id)
+    );
+  `);
+
+  await exec(`CREATE INDEX IF NOT EXISTS idx_attachments_post_id ON attachments(post_id);`);
+}
 
 module.exports = { exec, get, all, run, migrate };

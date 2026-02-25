@@ -15,7 +15,6 @@
           <img src="/public/logo.png" alt="SNF CORPORATION" />
         </a>
       </div>
-
       <nav class="top-center"><a class="navlink" href="/offers">OFFERS</a></nav>
       <div class="top-right"><a class="link" href="/admin">ADMIN</a></div>
     </div>
@@ -24,11 +23,19 @@
   <main class="wrap">
     <h1><%= mode === "new" ? "오퍼 작성" : "오퍼 수정" %></h1>
 
-    <form class="form" method="post" action="<%= mode === 'new' ? '/admin/new' : ('/admin/edit/' + post.id) %>">
+    <% if (typeof uploadError !== "undefined" && uploadError) { %>
+      <div class="alert"><%= uploadError %></div>
+    <% } %>
+
+    <!-- ✅ 저장 FORM (단 1개만) -->
+    <form class="form"
+          method="post"
+          enctype="multipart/form-data"
+          action="<%= mode === 'new' ? '/admin/new' : ('/admin/edit/' + post.id) %>">
+
       <label>제목(리스트에 보일 이름)</label>
       <input name="title" value="<%= post.title || '' %>" required />
 
-      <!-- ✅ Buyer Name(=messrs) / Buyer Email(=buyer_address) 입력칸 제거 -->
       <div class="grid2">
         <div>
           <label>Date</label>
@@ -73,7 +80,6 @@
         </div>
       </div>
 
-      <!-- ✅ Bank Information -> Part Information (필드명 bank_info 유지) -->
       <label>Part Information</label>
       <textarea name="bank_info" rows="4"><%= (post.offer?.bank_info)||'' %></textarea>
 
@@ -93,7 +99,6 @@
             <th style="width:170px;">Unit Price (USD)</th>
           </tr>
         </thead>
-
         <tbody id="itemsBody">
           <% const items = (post.offer?.items && post.offer.items.length) ? post.offer.items : [{desc:"", qty:"", unit:""}]; %>
           <% items.forEach((it, idx) => { %>
@@ -111,11 +116,17 @@
         <button class="btn secondary" type="button" onclick="addRow()">+ Add Item</button>
       </div>
 
-      <!-- ✅ 하단 설명/Remarks -> Bank Information (필드명 offer_note 유지) -->
+      <!-- ✅ 첨부파일 업로드(저장 눌러야 반영) -->
+      <hr style="margin:16px 0;">
+      <label>첨부파일(PDF 등)</label>
+      <input type="file" name="attachment" accept=".pdf,.png,.jpg,.jpeg" />
+      <div class="hint">* 최대 20MB (업로드 후 저장을 눌러야 반영됩니다)</div>
+
       <label style="margin-top:16px;">Bank Information</label>
       <textarea name="offer_note" rows="5"><%= post.offer_note || '' %></textarea>
 
       <label>공개 여부</label>
+      <!-- ✅ value를 "1"/"0" 로 고정 (NaN 방지 핵심) -->
       <select name="is_published">
         <option value="1" <%= Number(post.is_published) === 1 ? "selected" : "" %>>공개(올리기)</option>
         <option value="0" <%= Number(post.is_published) === 0 ? "selected" : "" %>>비공개(숨기기)</option>
@@ -126,6 +137,32 @@
         <a class="btn secondary" href="/admin">취소</a>
       </div>
     </form>
+
+    <!-- ✅ 첨부파일 목록/삭제는 "저장 form 밖"에서 표시 (중첩 form 제거 핵심) -->
+    <% if (mode === "edit") { %>
+      <div style="margin-top:18px;">
+        <h3 style="margin:0 0 8px 0;">첨부파일 목록</h3>
+
+        <% if (attachments && attachments.length) { %>
+          <ul style="margin:0; padding-left:18px;">
+            <% attachments.forEach(f => { %>
+              <li style="margin:6px 0;">
+                <a href="/attachment/<%= f.id %>"><%= f.filename %></a>
+                (<%= Math.round(f.size/1024) %> KB)
+                <form method="post"
+                      action="/admin/attachment/delete/<%= f.id %>"
+                      style="display:inline;"
+                      onsubmit="return confirm('첨부파일을 삭제할까요?');">
+                  <button class="btn tiny danger" type="submit">삭제</button>
+                </form>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <div class="hint">첨부파일이 없습니다.</div>
+        <% } %>
+      </div>
+    <% } %>
   </main>
 
   <script>

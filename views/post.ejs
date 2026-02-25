@@ -25,15 +25,15 @@
   </header>
 
   <main class="wrap">
-      <% if (submitted === "1") { %>
-    <div class="toast success" id="toastMsg">
-      ✅ 제출이 완료되었습니다. 빠른 시일 내에 연락드리겠습니다.
-    </div>
-  <% } else if (submitted === "0") { %>
-    <div class="toast fail" id="toastMsg">
-      ❌ 전송에 실패했습니다. 잠시 후 다시 시도해주세요.
-    </div>
-  <% } %>
+    <% if (submitted === "1") { %>
+      <div class="toast success" id="toastMsg">
+        ✅ 제출이 완료되었습니다. 빠른 시일 내에 연락드리겠습니다.
+      </div>
+    <% } else if (submitted === "0") { %>
+      <div class="toast fail" id="toastMsg">
+        ❌ 전송에 실패했습니다. 잠시 후 다시 시도해주세요.
+      </div>
+    <% } %>
 
     <div class="post-head">
       <h1 class="post-title"><%= post.title %></h1>
@@ -54,7 +54,7 @@
 
           <div class="invoice-grid">
             <div class="invoice-box">
-              <!-- ✅ 여기(두번째 사진 영역)에 입력칸 -->
+              <!-- ✅ 바이어 입력칸 -->
               <div class="row2">
                 <div class="k">Buyer Name</div>
                 <div class="v">
@@ -89,6 +89,21 @@
             <div class="k" style="margin-bottom:6px; font-weight:900;">Part Information</div>
             <div class="v" style="white-space:pre-line;"><%= offer.bank_info || "" %></div>
           </div>
+
+          <!-- ✅ 첨부파일 표시(있을 때만) -->
+          <% if (typeof attachments !== "undefined" && attachments && attachments.length) { %>
+            <div class="invoice-box" style="margin-top:12px;">
+              <div class="k" style="margin-bottom:6px; font-weight:900;">Attachments</div>
+              <ul style="margin:0; padding-left:18px;">
+                <% attachments.forEach(f => { %>
+                  <li style="margin:6px 0;">
+                    <a class="link" href="/attachment/<%= f.id %>"><%= f.filename %></a>
+                    (<%= Math.round((f.size || 0) / 1024) %> KB)
+                  </li>
+                <% }) %>
+              </ul>
+            </div>
+          <% } %>
 
           <%
             function toNum(x){
@@ -126,7 +141,7 @@
                   <tr><td colspan="5" style="opacity:.7;">No items</td></tr>
                 <% } %>
 
-                <% items.forEach((it, idx) => { 
+                <% items.forEach((it, idx) => {
                   const q = toNum(it.qty);
                   const u = toNum(it.unit);
                   const amt = (Number.isFinite(q) && Number.isFinite(u)) ? (q * u) : NaN;
@@ -172,10 +187,10 @@
 
     <% } %>
   </main>
-</body>
-<script>
-  const t = document.getElementById("toastMsg");
-  if (t) setTimeout(() => (t.style.display = "none"), 3000);
-</script>
 
+  <script>
+    const t = document.getElementById("toastMsg");
+    if (t) setTimeout(() => (t.style.display = "none"), 3000);
+  </script>
+</body>
 </html>

@@ -5,10 +5,19 @@ const bcrypt = require("bcrypt");
 const cookieParser = require("cookie-parser");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
+const multer = require("multer");
 const db = require("./db");
 
 const app = express();
 const OFFER_TTL_MS = 30 * 60 * 1000; // 30분
+
+// =========================
+// ✅ 파일 업로드(메모리) + 20MB 제한
+// =========================
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
+});
 
 // =========================
 // 기본 설정
@@ -61,6 +70,14 @@ async function ensureDb() {
   if (migrated) return;
   await db.migrate();
   migrated = true;
+}
+
+// =========================
+// 유틸
+// =========================
+function toId(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
 }
 
 // =========================
@@ -174,10 +191,7 @@ app.get("/post/:id", requireOfferAccess, async (req, res) => {
   await ensureDb();
 
   const id = Number(req.params.id);
-  const post = await db.get(
-    `SELECT * FROM posts WHERE id=? AND is_published=1`,
-    [id]
-  );
+  const post = await db.get(`SELECT * FROM posts WHERE id=? AND is_published=1`, [id]);
   if (!post) return res.status(404).send("Offer not found.");
 
   let offer = null;
@@ -187,8 +201,17 @@ app.get("/post/:id", requireOfferAccess, async (req, res) => {
     offer = null;
   }
 
+  // ✅ 첨부파일 목록 추가
+  const attachments = await db.all(
+    `SELECT id, filename, size
+     FROM attachments
+     WHERE post_id=?
+     ORDER BY id DESC`,
+    [id]
+  );
+
   const submitted = String(req.query.submitted || "");
-  res.render("post", { siteName: "SNF SEMI", post, offer, submitted });
+  res.render("post", { siteName: "SNF SEMI", post, offer, submitted, attachments });
 });
 
 // =========================
@@ -198,7 +221,9 @@ app.post("/post/:id/buyer-submit", requireOfferAccess, async (req, res) => {
   await ensureDb();
 
   try {
-    const id = Number(req.params.id);
+    const id = toId(req.params.id);
+    if (!id) return res.status(400).send("Bad request.");
+
     const buyerName = (req.body.buyerName || "").toString().trim();
     const buyerEmail = (req.body.buyerEmail || "").toString().trim();
 
@@ -206,7 +231,6 @@ app.post("/post/:id/buyer-submit", requireOfferAccess, async (req, res) => {
       return res.status(400).send("Buyer Name/Email is required.");
     }
 
-    // 오퍼 존재 확인(제목 같이 보내려고)
     const post = await db.get(
       `SELECT id, title FROM posts WHERE id=? AND is_published=1`,
       [id]
@@ -238,8 +262,8 @@ app.post("/post/:id/buyer-submit", requireOfferAccess, async (req, res) => {
 
     await transporter.sendMail({
       from: `"SNF SEMI" <${process.env.SMTP_USER}>`,
-      to: process.env.OWNER_EMAIL, // ✅ buyer 문의는 여기로
-      replyTo: buyerEmail, // ✅ 답장 누르면 구매자에게 바로
+      to: process.env.OWNER_EMAIL,
+      replyTo: buyerEmail,
       subject,
       text,
     });
@@ -252,6 +276,31 @@ app.post("/post/:id/buyer-submit", requireOfferAccess, async (req, res) => {
 });
 
 // =========================
+// ✅ 첨부파일 다운로드 (offers 권한 동일)
+// =========================
+app.get("/attachment/:id", requireOfferAccess, async (req, res) => {
+  await ensureDb();
+
+  const id = toId(req.params.id);
+  if (!id) return res.status(400).send("Bad request.");
+
+  const f = await db.get(
+    `SELECT id, filename, mime, size, data FROM attachments WHERE id=?`,
+    [id]
+  );
+  if (!f) return res.status(404).send("File not found.");
+
+  const filename = f.filename || "file";
+  res.setHeader("Content-Type", f.mime || "application/octet-stream");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${encodeURIComponent(filename)}"`
+  );
+
+  return res.send(Buffer.from(f.data));
+});
+
+// =========================
 // 관리자 로그인
 // =========================
 app.get("/admin/login", async (req, res) => {
@@ -259,7 +308,6 @@ app.get("/admin/login", async (req, res) => {
   res.render("admin_login", { error: null });
 });
 
-// ✅ DB 기반 관리자 로그인 (admin_users id=1)
 app.post("/admin/login", async (req, res) => {
   await ensureDb();
 
@@ -305,6 +353,9 @@ app.get("/admin/account", requireAdmin, async (req, res) => {
     sent: req.query.sent || "",
     ok: req.query.ok || "",
     err: req.query.err || "",
+    // admin_account.ejs에서 process.env.ADMIN_EMAIL 직접 써도 되지만,
+    // 혹시 undefined 방지용으로 같이 넘겨줄 수도 있음
+    adminEmail: process.env.ADMIN_EMAIL || "",
   });
 });
 
@@ -326,7 +377,7 @@ app.post("/admin/account/send-code", requireAdmin, async (req, res) => {
 
   await transporter.sendMail({
     from: `"SNF SEMI" <${process.env.SMTP_USER}>`,
-    to: process.env.ADMIN_EMAIL, // ✅ 인증코드 받는 메일
+    to: process.env.ADMIN_EMAIL,
     subject: "[SNF] 관리자 변경 인증코드",
     text: `인증코드: ${code}\n유효시간: 10분`,
   });
@@ -379,7 +430,10 @@ app.post("/admin/account/update", requireAdmin, async (req, res) => {
   params.push(1);
 
   try {
-    await db.run(`UPDATE admin_users SET ${updates.join(", ")} WHERE id=?`, params);
+    await db.run(
+      `UPDATE admin_users SET ${updates.join(", ")} WHERE id=?`,
+      params
+    );
   } catch (e) {
     return res.redirect("/admin/account?err=duplicate");
   }
@@ -403,7 +457,7 @@ app.get("/admin", requireAdmin, async (req, res) => {
 });
 
 // =========================
-// 관리자: 홈 문구 편집 (양쪽 스키마 자동 호환)
+// 관리자: 홈 문구 편집
 // =========================
 app.get("/admin/home", requireAdmin, async (req, res) => {
   await ensureDb();
@@ -417,7 +471,6 @@ app.post("/admin/home", requireAdmin, async (req, res) => {
   const hero_text = (req.body.hero_text ?? "").toString();
   const about_text = (req.body.about_text ?? "").toString();
 
-  // 1) hero_text/about_text 컬럼이 있으면 그걸로 저장
   try {
     await db.run(
       `UPDATE home_settings
@@ -428,7 +481,6 @@ app.post("/admin/home", requireAdmin, async (req, res) => {
     return res.redirect("/admin/home");
   } catch (_) {}
 
-  // 2) 없으면 hero_subtitle/about_text 스키마로 저장
   await db.run(
     `UPDATE home_settings
      SET hero_subtitle=?, about_text=?, updated_at=datetime('now')
@@ -495,16 +547,10 @@ function buildOfferFromBody(body) {
 
   const descArr = arr(body["item_desc[]"] ?? body.item_desc);
   const qtyArr = arr(body["item_qty[]"] ?? body.item_qty);
-
   const unitArr = arr(body["item_unit[]"] ?? body.item_unit);
   const priceArr = arr(body["item_price[]"] ?? body.item_price);
 
-  const len = Math.max(
-    descArr.length,
-    qtyArr.length,
-    unitArr.length,
-    priceArr.length
-  );
+  const len = Math.max(descArr.length, qtyArr.length, unitArr.length, priceArr.length);
 
   for (let i = 0; i < len; i++) {
     const desc = (descArr[i] ?? "").toString().trim();
@@ -535,7 +581,7 @@ function buildOfferFromBody(body) {
 }
 
 // =========================
-// 관리자: 새 오퍼
+// 관리자: 새 오퍼 (GET)
 // =========================
 app.get("/admin/new", requireAdmin, async (req, res) => {
   await ensureDb();
@@ -549,10 +595,15 @@ app.get("/admin/new", requireAdmin, async (req, res) => {
       offer_note: "",
       offer: { items: [{ desc: "", qty: "", unit: "" }] },
     },
+    attachments: [],
+    uploadError: null,
   });
 });
 
-app.post("/admin/new", requireAdmin, async (req, res) => {
+// =========================
+// 관리자: 새 오퍼 (POST) + 첨부 1개 업로드
+// =========================
+app.post("/admin/new", requireAdmin, upload.single("attachment"), async (req, res) => {
   await ensureDb();
 
   const { title, is_published, offer_note } = req.body;
@@ -560,22 +611,34 @@ app.post("/admin/new", requireAdmin, async (req, res) => {
   const offer = buildOfferFromBody(req.body);
   const offer_json = JSON.stringify(offer);
 
-  await db.run(
+  const result = await db.run(
     `INSERT INTO posts (title, content, thumbnail_path, is_published, offer_json, offer_note, created_at, updated_at)
      VALUES (?, '', NULL, ?, ?, ?, datetime('now'), datetime('now'))`,
     [title, Number(is_published), offer_json, offer_note || ""]
   );
 
-  res.redirect("/admin");
+  const newPostId = Number(result.lastInsertRowid);
+
+  if (req.file) {
+    await db.run(
+      `INSERT INTO attachments (post_id, filename, mime, size, data)
+       VALUES (?, ?, ?, ?, ?)`,
+      [newPostId, req.file.originalname, req.file.mimetype, req.file.size, req.file.buffer]
+    );
+  }
+
+  return res.redirect("/admin");
 });
 
 // =========================
-// 관리자: 수정
+// 관리자: 수정 (GET) + 첨부목록
 // =========================
 app.get("/admin/edit/:id", requireAdmin, async (req, res) => {
   await ensureDb();
 
-  const id = Number(req.params.id);
+  const id = toId(req.params.id);
+  if (!id) return res.status(400).send("Bad request.");
+
   const post = await db.get(`SELECT * FROM posts WHERE id=?`, [id]);
   if (!post) return res.status(404).send("Offer not found");
 
@@ -587,17 +650,32 @@ app.get("/admin/edit/:id", requireAdmin, async (req, res) => {
   }
   if (!offer) offer = { items: [{ desc: "", qty: "", unit: "" }] };
 
+  const attachments = await db.all(
+    `SELECT id, filename, size, created_at
+     FROM attachments
+     WHERE post_id=?
+     ORDER BY id DESC`,
+    [id]
+  );
+
   res.render("admin_edit", {
     siteName: "SNF SEMI",
     mode: "edit",
     post: { ...post, offer },
+    attachments,
+    uploadError: null,
   });
 });
 
-app.post("/admin/edit/:id", requireAdmin, async (req, res) => {
+// =========================
+// 관리자: 수정 (POST) + 첨부 1개 추가 업로드
+// =========================
+app.post("/admin/edit/:id", requireAdmin, upload.single("attachment"), async (req, res) => {
   await ensureDb();
 
-  const id = Number(req.params.id);
+  const id = toId(req.params.id);
+  if (!id) return res.status(400).send("Bad request.");
+
   const current = await db.get(`SELECT * FROM posts WHERE id=?`, [id]);
   if (!current) return res.status(404).send("Offer not found");
 
@@ -617,13 +695,26 @@ app.post("/admin/edit/:id", requireAdmin, async (req, res) => {
     [title, Number(is_published), offer_json, offer_note || "", id]
   );
 
-  res.redirect("/admin");
+  if (req.file) {
+    await db.run(
+      `INSERT INTO attachments (post_id, filename, mime, size, data)
+       VALUES (?, ?, ?, ?, ?)`,
+      [id, req.file.originalname, req.file.mimetype, req.file.size, req.file.buffer]
+    );
+  }
+
+  return res.redirect("/admin");
 });
 
+// =========================
+// 관리자: 게시글 공개/비공개 토글
+// =========================
 app.post("/admin/toggle/:id", requireAdmin, async (req, res) => {
   await ensureDb();
 
-  const id = Number(req.params.id);
+  const id = toId(req.params.id);
+  if (!id) return res.status(400).send("Bad request.");
+
   const row = await db.get(`SELECT is_published FROM posts WHERE id=?`, [id]);
   if (!row) return res.status(404).send("Offer not found");
 
@@ -635,12 +726,104 @@ app.post("/admin/toggle/:id", requireAdmin, async (req, res) => {
   res.redirect("/admin");
 });
 
+// =========================
+// ✅ 첨부파일 삭제 (관리자만) - FK 에러 방지 핵심
+// =========================
+app.post("/admin/attachment/delete/:id", requireAdmin, async (req, res) => {
+  await ensureDb();
+
+  const id = toId(req.params.id);
+  if (!id) return res.redirect("/admin");
+
+  const row = await db.get(`SELECT post_id FROM attachments WHERE id=?`, [id]);
+  if (!row) return res.redirect("/admin");
+
+  await db.run(`DELETE FROM attachments WHERE id=?`, [id]);
+
+  return res.redirect(`/admin/edit/${row.post_id}`);
+});
+
+// =========================
+// ✅ 오퍼 삭제 (첨부 먼저 삭제 -> FK 에러 방지 핵심)
+// =========================
 app.post("/admin/delete/:id", requireAdmin, async (req, res) => {
   await ensureDb();
 
-  const id = Number(req.params.id);
+  const id = toId(req.params.id);
+  if (!id) return res.redirect("/admin");
+
+  // ✅ 먼저 첨부 삭제
+  await db.run(`DELETE FROM attachments WHERE post_id=?`, [id]);
+
+  // ✅ 그 다음 글 삭제
   await db.run(`DELETE FROM posts WHERE id=?`, [id]);
+
   res.redirect("/admin");
+});
+
+// =========================
+// ✅ Multer/서버 에러 핸들러 (스택 노출 방지 + 용량 초과 안내)
+// =========================
+app.use(async (err, req, res, next) => {
+  try {
+    // ✅ 파일 용량 초과
+    if (err && err.code === "LIMIT_FILE_SIZE") {
+      // new/edit 구분
+      const isEdit = /^\/admin\/edit\/\d+/.test(req.originalUrl);
+      const id = isEdit ? toId(req.originalUrl.split("/").pop()) : null;
+
+      // NEW로 복귀
+      if (!isEdit) {
+        return res.status(400).render("admin_edit", {
+          siteName: "SNF SEMI",
+          mode: "new",
+          post: {
+            title: req.body?.title || "",
+            is_published: Number(req.body?.is_published ?? 1),
+            offer_note: req.body?.offer_note || "",
+            offer: buildOfferFromBody(req.body || {}),
+          },
+          attachments: [],
+          uploadError: "첨부파일 용량이 너무 큽니다. (최대 20MB)",
+        });
+      }
+
+      // EDIT로 복귀
+      await ensureDb();
+      if (!id) return res.redirect("/admin");
+
+      const post = await db.get(`SELECT * FROM posts WHERE id=?`, [id]);
+      if (!post) return res.redirect("/admin");
+
+      const attachments = await db.all(
+        `SELECT id, filename, size, created_at
+         FROM attachments
+         WHERE post_id=?
+         ORDER BY id DESC`,
+        [id]
+      );
+
+      return res.status(400).render("admin_edit", {
+        siteName: "SNF SEMI",
+        mode: "edit",
+        post: {
+          ...post,
+          title: req.body?.title ?? post.title,
+          is_published: Number(req.body?.is_published ?? post.is_published),
+          offer_note: req.body?.offer_note ?? post.offer_note,
+          offer: buildOfferFromBody(req.body || {}),
+        },
+        attachments,
+        uploadError: "첨부파일 용량이 너무 큽니다. (최대 20MB)",
+      });
+    }
+
+    console.error("SERVER ERROR:", err);
+    return res.status(500).send("Server error.");
+  } catch (e) {
+    console.error("ERROR HANDLER ERROR:", e);
+    return res.status(500).send("Server error.");
+  }
 });
 
 module.exports = app;
