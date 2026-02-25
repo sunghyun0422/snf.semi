@@ -1,18 +1,45 @@
 <!doctype html>
 <html lang="ko">
 <head>
+  <link rel="icon" type="image/png" href="/public/favicon.png" />
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>관리자 계정 변경 - SNF SEMI</title>
+  <title>관리자 계정 변경 - <%= siteName %></title>
   <link rel="stylesheet" href="/public/styles.css" />
 </head>
 <body>
+  <header class="topbar">
+    <div class="wrap topbar-inner topbar-3col">
+      <div class="top-left">
+        <a class="brand" href="/">
+          <img src="/public/logo.png" alt="SNF CORPORATION" />
+        </a>
+      </div>
+
+      <nav class="top-center">
+        <a class="navlink" href="/offers">OFFERS</a>
+      </nav>
+
+      <div class="top-right">
+        <a class="link" href="/">HOME</a>
+      </div>
+    </div>
+  </header>
+
   <main class="wrap auth">
     <h1>관리자 계정 변경</h1>
 
-    <% if (sent) { %><div class="alert">✅ 인증코드를 메일로 보냈습니다.</div><% } %>
-    <% if (ok) { %><div class="alert">✅ 변경 완료</div><% } %>
-    <% if (err) { %><div class="alert">⚠️ 오류: <%= err %></div><% } %>
+    <% if (sent) { %>
+      <div class="alert">✅ 인증코드를 메일로 보냈습니다.</div>
+    <% } %>
+
+    <% if (ok) { %>
+      <div class="alert">✅ 변경 완료</div>
+    <% } %>
+
+    <% if (err) { %>
+      <div class="alert">⚠️ 오류: <%= err %></div>
+    <% } %>
 
     <p>현재 관리자: <b><%= admin?.username %></b></p>
     <p>인증코드 수신 메일: <b><%= process.env.ADMIN_EMAIL %></b></p>
